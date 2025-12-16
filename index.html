@@ -372,41 +372,7 @@ function deg2rad(deg) {
 }
 </script>
 
-/* =====================================================
-   MAP
-===================================================== */
-const MapApp = {
-  map: null,
-  markers: [],
-
-  init() {
-    this.map = L.map('map').setView(CONFIG.MAP_CENTER, CONFIG.MAP_ZOOM);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap'
-    }).addTo(this.map);
-  },
-
-  clear() {
-    this.markers.forEach(m => this.map.removeLayer(m));
-    this.markers = [];
-  },
-
-  render(arealy) {
-    this.clear();
-
-    arealy.forEach(a => {
-      if (!a.lat || !a.lon) return;
-
-      const marker = L.marker([a.lat, a.lon]).addTo(this.map);
-      marker.bindPopup(this.popupContent(a));
-      this.markers.push(marker);
-    });
-
-    StatusBar.set(`Zobrazeno ${arealy.length} areálů`);
-  },
-
-  popupContent(a) {
+popupContent(a) {
   return `
     <div class="text-sm">
       <div class="font-semibold">${a.nazev}</div>
@@ -431,7 +397,6 @@ const MapApp = {
     </div>
   `;
 }
-
 
 <script>
 /* =====================================================
@@ -478,5 +443,6 @@ document.addEventListener('DOMContentLoaded', () => App.init());
 
 </body>
 </html>
+
 
 
