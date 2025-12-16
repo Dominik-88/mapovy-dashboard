@@ -1,706 +1,283 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <title>Vodárenské areály - Management systém</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vodárenské areály – Kompletní management systém</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+<style>
+/* Základní reset a globální styl */
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui;background:#f1f5f9;color:#0f172a}
 
-        #map { height: 100vh; width: 100%; }
+/* Mapa přes celou výšku okna */
+#map{height:100vh}
 
-        .top-bar {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-            color: white;
-            padding: 15px 20px;
-            z-index: 1001;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+/* Horní lišta aplikace */
+.top{position:fixed;top:0;left:0;right:0;z-index:1000;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
+.top h1{margin:0;font-size:15px;font-weight:700}
+.top small{opacity:.85;font-size:11px}
 
-        .top-bar h1 { font-size: 20px; font-weight: 700; }
+/* Tlačítka v horní liště */
+.btn-top{background:#ffffff22;color:#fff;border:1px solid #ffffff44;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer}
 
-        .top-bar-actions { display: flex; gap: 10px; }
+/* Pravý ovládací panel */
+.panel{position:fixed;top:56px;right:10px;z-index:1000;width:380px;max-height:calc(100vh - 70px);background:#fff;border-radius:12px;box-shadow:0 20px 40px rgba(0,0,0,.25);overflow:auto;padding:14px}
 
-        .top-bar-btn {
-            padding: 8px 16px;
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
+/* Jednotlivé sekce panelu */
+.section{border-bottom:1px solid #e5e7eb;margin-bottom:14px;padding-bottom:14px}
+.section:last-child{border:none;margin:0}
+.section h2{margin:0 0 8px;font-size:13px}
 
-        .top-bar-btn:hover { background: rgba(255,255,255,0.3); }
+/* Formulářové prvky */
+label{font-size:11px;font-weight:700;color:#475569}
+input,select,button{width:100%;margin-top:4px;padding:8px;border-radius:6px;border:1px solid #e5e7eb;font-size:12px}
+button{cursor:pointer}
 
-        .controls {
-            position: absolute;
-            top: 80px;
-            right: 10px;
-            z-index: 1000;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            max-width: 340px;
-            max-height: calc(100vh - 100px);
-            overflow-y: auto;
-        }
+/* Styl primárních akcí */
+.primary{background:#2563eb;color:#fff;border:none;font-weight:700}
+.success{background:#10b981;color:#fff;border:none;font-weight:700}
 
-        .control-section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e2e8f0; }
-        .control-section:last-child { border-bottom: none; margin-bottom: 0; }
+/* Grid pro statistické karty */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.card{background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:8px;text-align:center}
+.card .v{font-size:18px;font-weight:800}
+.card .l{font-size:10px;color:#64748b}
 
-        .section-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        label { display:block; font-weight:600; margin-bottom:6px; font-size:12px; color:#475569; }
-
-        select, input, button { width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:6px; font-size:13px; }
-
-        input:focus, select:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
-
-        button { background:#3b82f6; color:white; font-weight:600; cursor:pointer; border:none; transition:all 0.2s; }
-        button:hover { background:#2563eb; transform:translateY(-1px); box-shadow:0 4px 12px rgba(59,130,246,0.3); }
-        button:active { transform:translateY(0); }
-
-        .btn-secondary { background:#64748b; }
-        .btn-secondary:hover { background:#475569; }
-
-        .btn-success { background:#10b981; }
-        .btn-success:hover { background:#059669; }
-
-        .btn-danger { background:#ef4444; }
-        .btn-danger:hover { background:#dc2626; }
-
-        .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-
-        .stat-card { background: linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%); padding:12px; border-radius:6px; border:1px solid #e2e8f0; }
-        .stat-value { font-size:20px; font-weight:700; color:#1e293b; margin-bottom:4px; }
-        .stat-label { font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; }
-
-        .route-planner { background:#fef3c7; padding:12px; border-radius:6px; border:1px solid #fbbf24; }
-        .route-info { display:flex; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px solid #fbbf24; }
-        .route-metric { text-align:center; }
-        .route-metric-value { font-size:18px; font-weight:700; color:#92400e; }
-        .route-metric-label { font-size:10px; color:#92400e; margin-top:2px; }
-
-        .selected-areals { margin-top:10px; }
-        .areal-chip { display:inline-block; background:white; padding:6px 12px; border-radius:20px; margin:4px; font-size:11px; border:1px solid #fbbf24; color:#92400e; font-weight:600; }
-
-        .leaflet-popup-content { margin:15px; min-width:250px; }
-        .popup-title { font-size:18px; font-weight:700; margin-bottom:12px; color:#1e293b; border-bottom:2px solid #3b82f6; padding-bottom:8px; }
-        .popup-detail { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #e2e8f0; font-size:13px; }
-        .popup-detail:last-of-type { border-bottom:none; }
-        .popup-label { color:#64748b; font-weight:500; }
-        .popup-value { font-weight:700; color:#1e293b; }
-
-        .popup-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
-        .popup-btn { display:block; text-align:center; padding:10px; color:white; text-decoration:none; border-radius:6px; font-size:12px; font-weight:600; transition:all 0.2s; }
-        .popup-btn-primary { background:#3b82f6; }
-        .popup-btn-primary:hover { background:#2563eb; }
-        .popup-btn-success { background:#10b981; }
-        .popup-btn-success:hover { background:#059669; }
-
-        .legend { background:white; padding:12px; border-radius:8px; box-shadow:0 4px 20px rgba(0,0,0,0.15); }
-        .legend-title { font-weight:700; margin-bottom:10px; font-size:13px; color:#1e293b; }
-        .legend-item { display:flex; align-items:center; margin-bottom:8px; font-size:12px; }
-        .legend-color { width:24px; height:24px; border-radius:50%; margin-right:10px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
-
-        .modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:2000; align-items:center; justify-content:center; }
-        .modal.active { display:flex; }
-        .modal-content { background:white; border-radius:12px; padding:30px; max-width:600px; max-height:80vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
-        .modal-header { font-size:24px; font-weight:700; margin-bottom:20px; color:#1e293b; }
-        .modal-close { float:right; font-size:28px; cursor:pointer; color:#64748b; line-height:1; }
-        .modal-close:hover { color:#1e293b; }
-
-        .export-options { display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:20px; }
-        .export-card { padding:20px; border:2px solid #e2e8f0; border-radius:8px; text-align:center; cursor:pointer; transition:all 0.2s; }
-        .export-card:hover { border-color:#3b82f6; background:#f8fafc; transform:translateY(-2px); }
-        .export-icon { font-size:36px; margin-bottom:10px; }
-        .export-title { font-weight:700; margin-bottom:5px; color:#1e293b; }
-        .export-desc { font-size:12px; color:#64748b; }
-
-        .checkbox-group { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
-        .checkbox-group input[type="checkbox"] { width:auto; }
-
-        @media (max-width:768px) {
-            .top-bar { flex-direction:column; align-items:flex-start; gap:10px; }
-            .top-bar h1 { font-size:16px; }
-            .top-bar-actions { width:100%; justify-content:flex-start; flex-wrap:wrap; }
-            .controls { max-width:calc(100vw - 20px); top:120px; }
-            .stats-grid { grid-template-columns:1fr; }
-        }
-
-        /* small custom marker style fallback */
-        .custom-marker { display:flex; align-items:center; justify-content:center; }
-    </style>
+/* Tabulka evidence */
+.table{width:100%;border-collapse:collapse;font-size:11px}
+.table th,.table td{border-bottom:1px solid #e5e7eb;padding:6px}
+.small{font-size:10px;color:#64748b}
+</style>
 </head>
 <body>
-    <div class="top-bar">
-        <h1>🚰 Vodárenské areály - Management systém</h1>
-        <div class="top-bar-actions">
-            <button class="top-bar-btn" onclick="openExportModal()">📥 Export</button>
-            <button class="top-bar-btn" onclick="openHelpModal()">❓ Nápověda</button>
-        </div>
-    </div>
 
-    <div id="map"></div>
+<!-- Horní informační lišta -->
+<div class="top">
+  <div>
+    <h1>🚰 Vodárenské areály – Management</h1>
+    <small>kompletní provozní systém (offline demo)</small>
+  </div>
+  <div>
+    <button class="btn-top" onclick="exportCSV()">📤 Export CSV</button>
+  </div>
+</div>
 
-    <div class="controls">
-        <div class="control-section">
-            <div class="section-title"><span class="section-icon">🔍</span>Filtry a vyhledávání</div>
+<!-- Kontejner mapy -->
+<div id="map"></div>
 
-            <div class="control-group">
-                <label>Vyhledat areál</label>
-                <input type="text" id="searchInput" placeholder="Zadejte název areálu..." oninput="searchAreal()">
-            </div>
+<!-- Ovládací panel -->
+<div class="panel">
 
-            <div class="control-group">
-                <label>Filtr podle okresu</label>
-                <select id="okresFilter" onchange="applyFilters()">
-                    <option value="all">Všechny okresy (41)</option>
-                    <option value="CB">České Budějovice (18)</option>
-                    <option value="TA">Tábor (11)</option>
-                    <option value="CK">Český Krumlov (4)</option>
-                    <option value="PT">Prachatice (3)</option>
-                    <option value="PI">Písek (2)</option>
-                    <option value="ST">Strakonice (2)</option>
-                </select>
-            </div>
+<div class="section">
+<h2>🔍 Filtry objektů</h2>
+<label>Název</label><input id="fName" oninput="applyFilters()">
+<label>Okres</label><select id="fOkres" onchange="applyFilters()"><option value="all">Všechny</option></select>
+<label>Stav</label><select id="fStav" onchange="applyFilters()"><option value="all">Všechny</option><option>dobrý</option><option>rizikový</option><option>havarijní</option></select>
+</div>
 
-            <div class="control-group">
-                <label>Filtr podle kategorie</label>
-                <select id="katFilter" onchange="applyFilters()">
-                    <option value="all">Všechny kategorie (41)</option>
-                    <option value="I.">Kategorie I - Vysoká priorita (23)</option>
-                    <option value="II.">Kategorie II - Střední priorita (15)</option>
-                    <option value="">Bez kategorie (3)</option>
-                </select>
-            </div>
+<div class="section">
+<h2>📊 Statistiky</h2>
+<div class="grid">
+<div class="card"><div class="v" id="stObj">0</div><div class="l">Objektů</div></div>
+<div class="card"><div class="v" id="stArea">0</div><div class="l">Posekáno m²</div></div>
+<div class="card"><div class="v" id="stKm">0</div><div class="l">Ujeto km</div></div>
+<div class="card"><div class="v" id="stCash">0 Kč</div><div class="l">Zisk</div></div>
+</div>
+</div>
 
-            <div class="control-group">
-                <label>Minimální výměra (m²)</label>
-                <input type="number" id="minArea" placeholder="např. 1000" oninput="applyFilters()">
-            </div>
-        </div>
+<div class="section">
+<h2>👷 Denní výkon</h2>
+<label>Zaměstnanec</label><input id="empName">
+<label>Objekt</label><select id="empObj"></select>
+<label>Odpracováno (h)</label><input id="empHours" type="number">
+<label>Posekáno (m²)</label><input id="empArea" type="number">
+<label>Ujeto (km)</label><input id="empKm" type="number">
+<button class="success" onclick="saveWork()">Uložit výkon</button>
+</div>
 
-        <div class="control-section">
-            <div class="section-title"><span class="section-icon">📊</span>Statistiky</div>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" id="visibleCount">41</div>
-                    <div class="stat-label">Areálů</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="totalArea">198k</div>
-                    <div class="stat-label">m² celkem</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="totalFence">10.9k</div>
-                    <div class="stat-label">bm oplocení</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="avgArea">4.8k</div>
-                    <div class="stat-label">Ø výměra</div>
-                </div>
-            </div>
-        </div>
+<div class="section">
+<h2>💰 Finance</h2>
+<label>Příjem (Kč)</label><input id="finIn" type="number">
+<label>Náklad (Kč)</label><input id="finOut" type="number">
+<button class="primary" onclick="saveFinance()">Uložit finance</button>
+<div class="small">Automatický výpočet zisku</div>
+</div>
 
-        <div class="control-section">
-            <div class="section-title"><span class="section-icon">🗺️</span>Plánovač tras</div>
+<div class="section">
+<h2>📋 Evidence</h2>
+<table class="table"><tbody id="logTable"></tbody></table>
+</div>
+</div>
 
-            <div class="checkbox-group">
-                <input type="checkbox" id="routeMode" onchange="toggleRouteMode()">
-                <label style="margin: 0;">Aktivovat režim výběru tras</label>
-            </div>
+<!-- Leaflet knihovny -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 
-            <div id="routePlanner" style="display:none;">
-                <div class="route-planner">
-                    <div style="font-weight:600; margin-bottom:8px; color:#92400e;">Klikněte na areály pro vytvoření trasy</div>
-                    <div class="selected-areals" id="selectedAreals"></div>
-                    <div class="route-info">
-                        <div class="route-metric">
-                            <div class="route-metric-value" id="routeDistance">0</div>
-                            <div class="route-metric-label">Kilometry</div>
-                        </div>
-                        <div class="route-metric">
-                            <div class="route-metric-value" id="routeCost">0</div>
-                            <div class="route-metric-label">Kč (palivo)</div>
-                        </div>
-                        <div class="route-metric">
-                            <div class="route-metric-value" id="routeTime">0</div>
-                            <div class="route-metric-label">Minut</div>
-                        </div>
-                    </div>
-                    <button class="btn-success" style="margin-top:12px;" onclick="optimizeRoute()">🎯 Optimalizovat trasu</button>
-                    <button class="btn-danger" style="margin-top:8px;" onclick="clearRoute()">🗑️ Vymazat trasu</button>
-                </div>
-            </div>
-        </div>
+<script>
+// Spuštění aplikace
+console.log('Inicializace aplikace');
 
-        <div class="control-section">
-            <div class="section-title"><span class="section-icon">⚙️</span>Nástroje</div>
-            <button onclick="resetView()">🔄 Resetovat pohled</button>
-            <button class="btn-secondary" style="margin-top:8px;" onclick="showAllAreals()">👁️ Zobrazit všechny areály</button>
-            <button class="btn-success" style="margin-top:8px;" onclick="generateReport()">📋 Generovat report</button>
-        </div>
-    </div>
+// Datový model vodárenských objektů
+const objects=[
+ {o:"PI",n:"VDJ Amerika II",k:"I.",bm:293,v:3303,lat:49.305131,lon:14.166126},
+ {o:"ST",n:"VDJ Drahonice",k:"I.",bm:376,v:5953,lat:49.202902,lon:14.063713},
+ {o:"ST",n:"VDJ Vodňany",k:"I.",bm:252,v:1594,lat:49.16455,lon:14.177836},
+ {o:"CB",n:"VDJ Hlavatce",k:"",bm:424,v:7968,lat:49.063584,lon:14.267751},
+ {o:"PT",n:"VDJ Šibeniční vrch I",k:"I.",bm:245,v:1835,lat:49.025083,lon:13.994111},
+ {o:"PT",n:"ÚV Husinecka přehrada",k:"",bm:703,v:4908,lat:49.034362,lon:13.99683},
+ {o:"PT",n:"VDJ Šibeniční vrch II",k:"I.",bm:340,v:3206,lat:49.02671,lon:13.994001},
+ {o:"PI",n:"VDJ Zálužany",k:"",bm:299,v:2350,lat:49.552857,lon:14.083381},
+ {o:"PT",n:"VDJ Ptáčník",k:"II.",bm:239,v:1070,lat:49.066147,lon:14.186844},
+ {o:"CB",n:"VDJ Zdoba",k:"II.",bm:225,v:15523,lat:49.212422,lon:14.338095},
+ {o:"CK",n:"VDJ Domoradice",k:"I.",bm:450,v:4148,lat:48.829651,lon:14.326564},
+ {o:"CK",n:"VDJ Horní Brána",k:"I.",bm:187,v:1665,lat:48.80797,lon:14.329352},
+ {o:"CK",n:"VDJ Netřebice",k:"I.",bm:136,v:877,lat:48.783277,lon:14.456447},
+ {o:"CK",n:"VDJ Plešivec",k:"I.",bm:119,v:975,lat:48.802231,lon:14.304933},
+ {o:"CB",n:"VDJ Doudleby",k:"II.",bm:79,v:413,lat:48.888896,lon:14.480271},
+ {o:"CB",n:"VDJ Jankov",k:"I.",bm:106,v:784,lat:48.968747,lon:14.301697},
+ {o:"CB",n:"VDJ Hosín II",k:"I.",bm:399,v:4173,lat:49.030641,lon:14.501012},
+ {o:"CB",n:"VDJ Chlum",k:"II.",bm:63,v:535,lat:49.096493,lon:14.388679},
+ {o:"CB",n:"VDJ Chotýčany",k:"II.",bm:338,v:4775,lat:49.070748,lon:14.51946},
+ {o:"CB",n:"VDJ Rudolfov III",k:"I.",bm:174,v:1868,lat:48.986207,lon:14.547076},
+ {o:"CB",n:"VDJ Rimov - Vesce",k:"I.",bm:99,v:662,lat:48.847847,lon:14.466957},
+ {o:"CB",n:"VDJ Hosin",k:"II.",bm:125,v:809,lat:49.013889,lon:14.450278},
+ {o:"CB",n:"VDJ Včelná",k:"II.",bm:476,v:8660,lat:48.966389,lon:14.454722},
+ {o:"CB",n:"VDJ Húry",k:"I.",bm:0,v:395,lat:49.058611,lon:14.481944},
+ {o:"CB",n:"VDJ Chlumec",k:"II.",bm:110,v:811,lat:49.124766,lon:14.431321},
+ {o:"CB",n:"VDJ Olešník",k:"I.",bm:117,v:380,lat:49.111103,lon:14.377766},
+ {o:"CB",n:"ČS Bukovec",k:"I.",bm:300,v:4943,lat:48.881608,lon:14.449233},
+ {o:"CB",n:"VDJ Heřman",k:"II.",bm:119,v:982,lat:48.909479,lon:14.499876},
+ {o:"CB",n:"ČS Vidov u řeky",k:"II.",bm:212,v:2501,lat:48.950833,lon:14.479722},
+ {o:"CB",n:"Vrt Vidov",k:"II.",bm:164,v:470,lat:48.924066,lon:14.489679},
+ {o:"CB",n:"ÚV Plav",k:"I.",bm:1413,v:74777,lat:48.912611,lon:14.494018},
+ {o:"TA",n:"VDJ Čekanice",k:"I.",bm:450,v:6344,lat:49.422197,lon:14.689896},
+ {o:"TA",n:"VDJ Svatá Anna",k:"I.",bm:264,v:4192,lat:49.401133,lon:14.69864},
+ {o:"TA",n:"VDJ Bezděčín",k:"I.",bm:169,v:1996,lat:49.323096,lon:14.628405},
+ {o:"TA",n:"VDJ Milevsko",k:"I.",bm:129,v:823,lat:49.452521,lon:14.344102},
+ {o:"TA",n:"VDJ Hodušín",k:"II.",bm:205,v:1708,lat:49.42967,lon:14.474214},
+ {o:"TA",n:"VDJ Všechov",k:"I.",bm:199,v:1574,lat:49.430159,lon:14.623205},
+ {o:"TA",n:"VDJ Zlukov",k:"II.",bm:184,v:1520,lat:49.196289,lon:14.736382},
+ {o:"TA",n:"ÚV Tábor",k:"II.",bm:350,v:12262,lat:49.422872,lon:14.666426},
+ {o:"TA",n:"ČS Sudoměřice",k:"I.",bm:220,v:2508,lat:49.28658,lon:14.547794},
+ {o:"TA",n:"Provozní Vodojem Tábor",k:"II.",bm:155,v:1853,lat:49.424264,lon:14.666384}
+];
 
-    <div id="exportModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeModal('exportModal')">&times;</span>
-            <div class="modal-header">Export dat</div>
-            <div class="export-options">
-                <div class="export-card" onclick="exportCSV()">
-                    <div class="export-icon">📄</div>
-                    <div class="export-title">CSV</div>
-                    <div class="export-desc">Pro Excel a Google Sheets</div>
-                </div>
-                <div class="export-card" onclick="exportGeoJSON()">
-                    <div class="export-icon">🗺️</div>
-                    <div class="export-title">GeoJSON</div>
-                    <div class="export-desc">Pro GIS nástroje</div>
-                </div>
-                <div class="export-card" onclick="exportKML()">
-                    <div class="export-icon">🌍</div>
-                    <div class="export-title">KML</div>
-                    <div class="export-desc">Pro Google Earth</div>
-                </div>
-                <div class="export-card" onclick="copyGoogleMapsLink()">
-                    <div class="export-icon">📍</div>
-                    <div class="export-title">Google Maps</div>
-                    <div class="export-desc">Sdílet odkaz</div>
-                </div>
-            </div>
-        </div>
-    </div>
+// Pracovní kopie dat po aplikaci filtrů
+let filtered=[...objects];
+console.log('Načteno objektů:', objects.length);
 
-    <div id="helpModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeModal('helpModal')">&times;</span>
-            <div class="modal-header">Nápověda</div>
-            <h3 style="margin-top:20px; color:#1e293b;">Základní ovládání</h3>
-            <ul style="margin-left:20px; line-height:1.8; color:#475569;">
-                <li><strong>Zoom:</strong> Kolečko myši nebo pinch na mobilu</li>
-                <li><strong>Pohyb:</strong> Tažení myší/prstem</li>
-                <li><strong>Detail areálu:</strong> Kliknutí na barevný bod</li>
-                <li><strong>Navigace:</strong> Tlačítko v detailu areálu</li>
-            </ul>
+// Inicializace mapy a základního pohledu
+const map=L.map('map').setView([49.1,14.4],9);
+console.log('Mapa inicializována');
 
-            <h3 style="margin-top:20px; color:#1e293b;">Pokročilé funkce</h3>
-            <ul style="margin-left:20px; line-height:1.8; color:#475569;">
-                <li><strong>Plánovač tras:</strong> Aktivujte checkbox a klikejte na areály pro výpočet trasy</li>
-                <li><strong>Optimalizace:</strong> Automaticky seřadí areály pro nejkratší trasu</li>
-                <li><strong>Filtry:</strong> Kombinujte více filtrů pro přesné výsledky</li>
-                <li><strong>Export:</strong> Uložte data ve formátu CSV, GeoJSON nebo KML</li>
-            </ul>
+// Podkladová OpenStreetMap vrstva
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
 
-            <h3 style="margin-top:20px; color:#1e293b;">Barevné kódování</h3>
-            <ul style="margin-left:20px; line-height:1.8; color:#475569;">
-                <li>🔴 <strong>Červená:</strong> Kategorie I (vysoká priorita)</li>
-                <li>🟠 <strong>Oranžová:</strong> Kategorie II (střední priorita)</li>
-                <li>⚪ <strong>Šedá:</strong> Bez kategorie</li>
-            </ul>
-        </div>
-    </div>
+// Skupina pro kreslené objekty (měření)
+const drawn=new L.FeatureGroup();
+map.addLayer(drawn);
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    <script>
-        // ===== DATA (beze změn) =====
-        const arealData = [
-            { nazev: "VDJ Amerika II", okres: "PI", kategorie: "I.", oploceni: 293, vymera: 3303, lat: 49.305131, lon: 14.166126 },
-            { nazev: "VDJ Drahonice", okres: "ST", kategorie: "I.", oploceni: 376, vymera: 5953, lat: 49.202902, lon: 14.063713 },
-            { nazev: "VDJ Vodňany", okres: "ST", kategorie: "I.", oploceni: 252, vymera: 1594, lat: 49.147778, lon: 14.175278 },
-            { nazev: "VDJ Hlavatce", okres: "CB", kategorie: "", oploceni: 424, vymera: 7968, lat: 49.063584, lon: 14.267751 },
-            { nazev: "VDJ Šibeniční vrch I", okres: "PT", kategorie: "I.", oploceni: 245, vymera: 1835, lat: 49.013333, lon: 13.994444 },
-            { nazev: "ÚV Husinecka přehrada", okres: "PT", kategorie: "", oploceni: 703, vymera: 4908, lat: 49.058889, lon: 13.994722 },
-            { nazev: "VDJ Šibeniční vrch II", okres: "PT", kategorie: "I.", oploceni: 340, vymera: 3206, lat: 49.026710, lon: 13.994001 },
-            { nazev: "VDJ Zálužany", okres: "PI", kategorie: "", oploceni: 299, vymera: 2350, lat: 49.316389, lon: 14.096111 },
-            { nazev: "VDJ Ptáčník", okres: "PT", kategorie: "II.", oploceni: 239, vymera: 1070, lat: 49.091111, lon: 13.948056 },
-            { nazev: "VDJ Zdoba", okres: "CB", kategorie: "II.", oploceni: 225, vymera: 15523, lat: 49.212422, lon: 14.338095 },
-            { nazev: "VDJ Domoradice", okres: "CK", kategorie: "I.", oploceni: 450, vymera: 4148, lat: 48.812778, lon: 14.273056 },
-            { nazev: "VDJ Horní Brána", okres: "CK", kategorie: "I.", oploceni: 187, vymera: 1665, lat: 48.807970, lon: 14.329352 },
-            { nazev: "VDJ Netřebice", okres: "CK", kategorie: "I.", oploceni: 136, vymera: 877, lat: 48.856389, lon: 14.318611 },
-            { nazev: "VDJ Plešivec", okres: "CK", kategorie: "I.", oploceni: 119, vymera: 975, lat: 48.823056, lon: 14.165278 },
-            { nazev: "VDJ Doudleby", okres: "CB", kategorie: "II.", oploceni: 79, vymera: 413, lat: 48.991944, lon: 14.505556 },
-            { nazev: "VDJ Jankov", okres: "CB", kategorie: "I.", oploceni: 106, vymera: 784, lat: 49.033566, lon: 14.492817 },
-            { nazev: "VDJ Hosín II", okres: "CB", kategorie: "I.", oploceni: 399, vymera: 4173, lat: 49.016111, lon: 14.452778 },
-            { nazev: "VDJ Chlum", okres: "CB", kategorie: "II.", oploceni: 63, vymera: 535, lat: 49.091944, lon: 14.534167 },
-            { nazev: "VDJ Chotýčany", okres: "CB", kategorie: "II.", oploceni: 338, vymera: 4775, lat: 49.133611, lon: 14.498889 },
-            { nazev: "VDJ Rudolfov III", okres: "CB", kategorie: "I.", oploceni: 174, vymera: 1868, lat: 48.988889, lon: 14.595833 },
-            { nazev: "VDJ Rimov - Vesce", okres: "CB", kategorie: "I.", oploceni: 99, vymera: 662, lat: 48.842778, lon: 14.525000 },
-            { nazev: "VDJ Hosin", okres: "CB", kategorie: "II.", oploceni: 125, vymera: 809, lat: 49.013889, lon: 14.450278 },
-            { nazev: "VDJ Včelná", okres: "CB", kategorie: "II.", oploceni: 476, vymera: 8660, lat: 48.966389, lon: 14.454722 },
-            { nazev: "VDJ Húry", okres: "CB", kategorie: "I.", oploceni: 0, vymera: 395, lat: 49.058611, lon: 14.481944 },
-            { nazev: "VDJ Chlumec", okres: "CB", kategorie: "II.", oploceni: 110, vymera: 811, lat: 49.054167, lon: 14.488889 },
-            { nazev: "VDJ Olešník", okres: "CB", kategorie: "I.", oploceni: 117, vymera: 380, lat: 49.056944, lon: 14.498611 },
-            { nazev: "ČS Bukovec", okres: "CB", kategorie: "I.", oploceni: 300, vymera: 4943, lat: 48.949167, lon: 14.480833 },
-            { nazev: "VDJ Heřman", okres: "CB", kategorie: "II.", oploceni: 119, vymera: 982, lat: 48.991667, lon: 14.535000 },
-            { nazev: "ČS Vidov u řeky", okres: "CB", kategorie: "II.", oploceni: 212, vymera: 2501, lat: 48.950833, lon: 14.479722 },
-            { nazev: "Vrt Vidov", okres: "CB", kategorie: "II.", oploceni: 164, vymera: 470, lat: 48.951111, lon: 14.480556 },
-            { nazev: "ÚV Plav", okres: "CB", kategorie: "I.", oploceni: 1413, vymera: 74777, lat: 49.006111, lon: 14.452778 },
-            { nazev: "VDJ Čekanice", okres: "TA", kategorie: "I.", oploceni: 450, vymera: 6344, lat: 49.422197, lon: 14.689896 },
-            { nazev: "VDJ Svatá Anna", okres: "TA", kategorie: "I.", oploceni: 264, vymera: 4192, lat: 49.401133, lon: 14.698640 },
-            { nazev: "VDJ Bezděčín", okres: "TA", kategorie: "I.", oploceni: 169, vymera: 1996, lat: 49.381667, lon: 14.700556 },
-            { nazev: "VDJ Milevsko", okres: "TA", kategorie: "I.", oploceni: 129, vymera: 823, lat: 49.452521, lon: 14.344102 },
-            { nazev: "VDJ Hodušín", okres: "TA", kategorie: "II.", oploceni: 205, vymera: 1708, lat: 49.429670, lon: 14.474214 },
-            { nazev: "VDJ Všechov", okres: "TA", kategorie: "I.", oploceni: 199, vymera: 1574, lat: 49.430159, lon: 14.623205 },
-            { nazev: "VDJ Zlukov", okres: "TA", kategorie: "II.", oploceni: 184, vymera: 1520, lat: 49.196289, lon: 14.736382 },
-            { nazev: "ÚV Tábor", okres: "TA", kategorie: "II.", oploceni: 350, vymera: 12262, lat: 49.422872, lon: 14.666426 },
-            { nazev: "ČS Sudoměřice", okres: "TA", kategorie: "I.", oploceni: 220, vymera: 2508, lat: 49.368611, lon: 14.720278 },
-            { nazev: "Provozní Vodojem Tábor", okres: "TA", kategorie: "II.", oploceni: 155, vymera: 1853, lat: 49.413889, lon: 14.659167 }
-        ];
+// Ovládání kreslení vzdáleností a ploch
+map.addControl(new L.Control.Draw({
+ draw:{polygon:true,polyline:true,rectangle:false,circle:false,marker:false},
+ edit:{featureGroup:drawn}
+}));
 
-        // ===== MAPA =====
-        const map = L.map('map').setView([49.15, 14.35], 10);
+// Reakce na dokončení kreslení
+map.on(L.Draw.Event.CREATED,e=>{
+ console.log('Vykreslen nový prvek');
+ drawn.addLayer(e.layer)
+});
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap',
-            maxZoom: 19
-        }).addTo(map);
+// Reference na vykreslené markery
+let markers=[];
 
-        // ===== PROMĚNNÉ =====
-        let markers = [];
-        let selectedRoute = [];
-        let routeMode = false;
-        let routeLine = null;
+// Vykreslení objektů na mapu
+function render(){
+ console.log('Render objektů:', filtered.length);
+ markers.forEach(m=>map.removeLayer(m));
+ markers=[];
+ filtered.forEach(d=>{
+  const c=d.s==='havarijní'?'#dc2626':d.s==='rizikový'?'#f59e0b':'#16a34a';
+  const m=L.circleMarker([d.lat,d.lon],{radius:8,color:c,fillOpacity:.9})
+   .addTo(map)
+   .bindPopup(`<b>${d.n}</b><br>Okres: ${d.o}<br>Stav: ${d.s}<br>Plocha: ${d.v.toLocaleString()} m²`);
+  markers.push(m)
+ });
+ updateStats()
+}
 
-        // ===== HELPERY =====
-        const getMarkerColor = (kategorie) => {
-            if (kategorie === 'I.') return '#dc2626';
-            if (kategorie === 'II.') return '#f97316';
-            return '#64748b';
-        };
+// Aplikace filtrů z UI
+function applyFilters(){
+ const n=fName.value.toLowerCase();
+ const o=fOkres.value;
+ const s=fStav.value;
+ filtered=objects.filter(d=>(!n||d.n.toLowerCase().includes(n))&&(o==='all'||d.o===o)&&(s==='all'||d.s===s));
+ console.log('Aplikovány filtry', {n,o,s,results:filtered.length});
+ render()
+}
 
-        const calculateDistance = (lat1, lon1, lat2, lon2) => {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                     Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
-        };
+// Přepočet a zobrazení statistik
+function updateStats(){
+ stObj.textContent=filtered.length;
+ stArea.textContent=(+localStorage.area||0).toLocaleString();
+ stKm.textContent=(+localStorage.km||0).toLocaleString();
+ stCash.textContent=(+localStorage.cash||0).toLocaleString()+" Kč";
+ console.log('Statistiky aktualizovány')
+}
 
-        // ===== VYKRESLOVÁNÍ MARKERŮ =====
-        const createMarkers = (data) => {
-            // odeber staré
-            markers.forEach(m => map.removeLayer(m.marker));
-            markers = [];
+// Uložení denního výkonu zaměstnance
+function saveWork(){
+ console.log('Ukládám výkon', {emp:empName.value,area:empArea.value,km:empKm.value});
+ localStorage.area=(+localStorage.area||0)+(+empArea.value||0);
+ localStorage.km=(+localStorage.km||0)+(+empKm.value||0);
+ appendLog(`Výkon: ${empName.value} – ${empArea.value} m², ${empKm.value} km`);
+ render()
+}
 
-            data.forEach(areal => {
-                const color = getMarkerColor(areal.kategorie);
+// Uložení finančního záznamu
+function saveFinance(){
+ const z=(+finIn.value||0)-(+finOut.value||0);
+ console.log('Ukládám finance', {in:finIn.value,out:finOut.value,profit:z});
+ localStorage.cash=(+localStorage.cash||0)+z;
+ appendLog(`Finance: zisk ${z.toLocaleString()} Kč`);
+ render()
+}
 
-                const icon = L.divIcon({
-                    className: 'custom-marker',
-                    html: `<div style="background-color: ${color}; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
-                    iconSize: [28, 28],
-                    iconAnchor: [14, 14]
-                });
+// Přidání záznamu do evidence
+function appendLog(t){
+ console.log('Záznam logu:', t);
+ const tb=document.getElementById('logTable');
+ tb.innerHTML=`<tr><td>${new Date().toLocaleString()}</td><td>${t}</td></tr>`+tb.innerHTML
+}
 
-                const marker = L.marker([areal.lat, areal.lon], { icon });
+// Export seznamu objektů do CSV
+function exportCSV(){
+ console.log('Export CSV');
+ const rows=['Nazev;Okres;Stav;Lat;Lon;Plocha_m2'];
+ objects.forEach(d=>rows.push(`${d.n};${d.o};${d.s};${d.lat};${d.lon};${d.v}`));
+ const blob=new Blob(['\uFEFF'+rows.join('\n')],{type:'text/csv'});
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);
+ a.download='vodarenske_arealy.csv';
+ a.click()
+}
 
-                const popupContent = `
-                    <div class="popup-title">${areal.nazev}</div>
-                    <div class="popup-detail"><span class="popup-label">Okres:</span><span class="popup-value">${areal.okres}</span></div>
-                    <div class="popup-detail"><span class="popup-label">Kategorie:</span><span class="popup-value">${areal.kategorie || 'Bez kategorie'}</span></div>
-                    <div class="popup-detail"><span class="popup-label">Výměra:</span><span class="popup-value">${areal.vymera.toLocaleString()} m²</span></div>
-                    <div class="popup-detail"><span class="popup-label">Oplocení:</span><span class="popup-value">${areal.oploceni.toLocaleString()} bm</span></div>
-                    <div class="popup-actions">
-                        <a href="https://www.google.com/maps/dir/?api=1&destination=${areal.lat},${areal.lon}" target="_blank" class="popup-btn popup-btn-primary">🧭 Navigovat</a>
-                        <a href="#" onclick="addToRoute('${areal.nazev}'); return false;" class="popup-btn popup-btn-success">➕ Do trasy</a>
-                    </div>
-                `;
+// Naplnění filtrů a výběrů daty
+[...new Set(objects.map(o=>o.o))].forEach(o=>{
+ console.log('Přidán okres do filtru:',o);
+ fOkres.innerHTML+=`<option>${o}</option>`
+});
 
-                marker.bindPopup(popupContent);
+objects.forEach(o=>{
+ console.log('Přidán objekt do výběru:',o.n);
+ empObj.innerHTML+=`<option>${o.n}</option>`
+});
 
-                marker.on('click', () => {
-                    if (routeMode) addToRoute(areal.nazev);
-                });
-
-                marker.addTo(map);
-                markers.push({ marker, data: areal });
-            });
-
-            updateStats(data);
-        };
-
-        // ===== STATISTIKY =====
-        const updateStats = (data) => {
-            document.getElementById('visibleCount').textContent = data.length;
-            const totalArea = data.reduce((sum, a) => sum + a.vymera, 0);
-            const totalFence = data.reduce((sum, a) => sum + a.oploceni, 0);
-            const avgArea = data.length > 0 ? totalArea / data.length : 0;
-
-            document.getElementById('totalArea').textContent = (totalArea / 1000).toFixed(1) + 'k';
-            document.getElementById('totalFence').textContent = (totalFence / 1000).toFixed(1) + 'k';
-            document.getElementById('avgArea').textContent = (avgArea / 1000).toFixed(1) + 'k';
-        };
-
-        // ===== FILTRY A VYHLEDÁVÁNÍ =====
-        const applyFilters = () => {
-            const okresFilter = document.getElementById('okresFilter').value;
-            const katFilter = document.getElementById('katFilter').value;
-            const minArea = parseInt(document.getElementById('minArea').value) || 0;
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-
-            let filtered = arealData.slice();
-
-            if (okresFilter !== 'all') filtered = filtered.filter(a => a.okres === okresFilter);
-            if (katFilter !== 'all') filtered = filtered.filter(a => a.kategorie === katFilter);
-            if (minArea > 0) filtered = filtered.filter(a => a.vymera >= minArea);
-            if (searchTerm) filtered = filtered.filter(a => a.nazev.toLowerCase().includes(searchTerm));
-
-            createMarkers(filtered);
-        };
-
-        const searchAreal = () => { applyFilters(); };
-
-        // ===== ZOBRAZOVACÍ FUNKCE =====
-        const resetView = () => { map.setView([49.15, 14.35], 10); };
-        const showAllAreals = () => {
-            document.getElementById('okresFilter').value = 'all';
-            document.getElementById('katFilter').value = 'all';
-            document.getElementById('minArea').value = '';
-            document.getElementById('searchInput').value = '';
-            applyFilters();
-        };
-
-        // ===== PLÁNOVAČ TRAS =====
-        const toggleRouteMode = () => {
-            routeMode = document.getElementById('routeMode').checked;
-            document.getElementById('routePlanner').style.display = routeMode ? 'block' : 'none';
-            if (!routeMode) clearRoute();
-        };
-
-        const addToRoute = (arealName) => {
-            if (!routeMode) return;
-            const areal = arealData.find(a => a.nazev === arealName);
-            if (!areal) return;
-            if (selectedRoute.find(a => a.nazev === arealName)) return;
-            selectedRoute.push(areal);
-            updateRouteDisplay();
-        };
-
-        const updateRouteDisplay = () => {
-            const container = document.getElementById('selectedAreals');
-            container.innerHTML = selectedRoute.map(a => `<span class="areal-chip">${a.nazev}</span>`).join('');
-
-            if (selectedRoute.length >= 2) {
-                let totalDist = 0;
-                for (let i = 0; i < selectedRoute.length - 1; i++) {
-                    totalDist += calculateDistance(
-                        selectedRoute[i].lat, selectedRoute[i].lon,
-                        selectedRoute[i+1].lat, selectedRoute[i+1].lon
-                    );
-                }
-                const fuelCost = totalDist * 0.08 * 38; // tvůj vzorec (l/km * cena)
-                const timeMinutes = Math.round(totalDist / 50 * 60);
-
-                document.getElementById('routeDistance').textContent = totalDist.toFixed(1);
-                document.getElementById('routeCost').textContent = Math.round(fuelCost);
-                document.getElementById('routeTime').textContent = timeMinutes;
-
-                drawRouteLine();
-            } else {
-                document.getElementById('routeDistance').textContent = '0';
-                document.getElementById('routeCost').textContent = '0';
-                document.getElementById('routeTime').textContent = '0';
-                if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
-            }
-        };
-
-        const drawRouteLine = () => {
-            if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
-            const coords = selectedRoute.map(a => [a.lat, a.lon]);
-            routeLine = L.polyline(coords, { color: '#3b82f6', weight: 4, opacity: 0.7, dashArray: '10,10' }).addTo(map);
-            map.fitBounds(routeLine.getBounds(), { padding: [50,50] });
-        };
-
-        const clearRoute = () => {
-            selectedRoute = [];
-            if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
-            document.getElementById('selectedAreals').innerHTML = '';
-            document.getElementById('routeDistance').textContent = '0';
-            document.getElementById('routeCost').textContent = '0';
-            document.getElementById('routeTime').textContent = '0';
-        };
-
-        const optimizeRoute = () => {
-            if (selectedRoute.length < 2) return;
-            const start = selectedRoute[0];
-            let unvisited = selectedRoute.slice(1);
-            let optimized = [start];
-            let current = start;
-            while (unvisited.length > 0) {
-                let nearest = null;
-                let minDist = Infinity;
-                unvisited.forEach(areal => {
-                    const dist = calculateDistance(current.lat, current.lon, areal.lat, areal.lon);
-                    if (dist < minDist) { minDist = dist; nearest = areal; }
-                });
-                optimized.push(nearest);
-                current = nearest;
-                unvisited = unvisited.filter(a => a !== nearest);
-            }
-            selectedRoute = optimized;
-            updateRouteDisplay();
-        };
-
-        // ===== EXPORTY =====
-        const exportCSV = () => {
-            const headers = ['ID','Nazev','Okres','Kategorie','Vymera_m2','Oploceni_bm','GPS_Lat','GPS_Lon','Link_Mapy'];
-            const rows = arealData.map(r => {
-                const id = `${r.okres}_${r.nazev.replace(/\s+/g,'_')}`;
-                const mapsLink = `https://www.google.com/maps?q=${r.lat},${r.lon}`;
-                return [id, `"${r.nazev}"`, r.okres, r.kategorie || 'Bez kategorie', r.vymera, r.oploceni, r.lat.toFixed(6), r.lon.toFixed(6), mapsLink].join(';');
-            });
-            const csvContent = '\uFEFF' + [headers.join(';'), ...rows].join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url; link.download = 'vodovody_export.csv';
-            link.click();
-            URL.revokeObjectURL(url);
-            closeModal('exportModal');
-        };
-
-        const exportGeoJSON = () => {
-            const features = arealData.map(r => ({
-                type:'Feature',
-                properties:{
-                    id: `${r.okres}_${r.nazev.replace(/\s+/g,'_')}`,
-                    nazev: r.nazev,
-                    okres: r.okres,
-                    kategorie: r.kategorie || 'Bez kategorie',
-                    vymera: r.vymera,
-                    oploceni: r.oploceni
-                },
-                geometry:{ type:'Point', coordinates:[r.lon, r.lat] }
-            }));
-            const geojson = { type:'FeatureCollection', features };
-            const blob = new Blob([JSON.stringify(geojson, null, 2)], { type:'application/json' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url; link.download = 'vodovody_export.geojson';
-            link.click();
-            URL.revokeObjectURL(url);
-            closeModal('exportModal');
-        };
-
-        const exportKML = () => {
-            let kml = `<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2">
-<Document>
-    <name>Vodárenské areály</name>
-`;
-            arealData.forEach(a => {
-                kml += `    <Placemark>
-        <name>${a.nazev}</name>
-        <description>Okres: ${a.okres}, Kategorie: ${a.kategorie || 'Bez'}, Výměra: ${a.vymera} m², Oplocení: ${a.oploceni} bm</description>
-        <Point><coordinates>${a.lon},${a.lat},0</coordinates></Point>
-    </Placemark>
-`;
-            });
-            kml += `</Document>
-</kml>`;
-            const blob = new Blob([kml], { type:'application/vnd.google-earth.kml+xml' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url; link.download = 'vodovody_export.kml';
-            link.click();
-            URL.revokeObjectURL(url);
-            closeModal('exportModal');
-        };
-
-        const copyGoogleMapsLink = () => {
-            const center = map.getCenter();
-            const zoom = map.getZoom();
-            const url = `https://www.google.com/maps/@${center.lat},${center.lng},${zoom}z`;
-            navigator.clipboard.writeText(url);
-            alert('Odkaz zkopírován do schránky!');
-            closeModal('exportModal');
-        };
-
-        // ===== REPORT =====
-        const generateReport = () => {
-            const data = markers.map(m => m.data);
-            const totalArea = data.reduce((s,a) => s + a.vymera, 0);
-            const totalFence = data.reduce((s,a) => s + a.oploceni, 0);
-
-            const report = `REPORT VODÁRENSKÝCH AREÁLŮ
-=====================================
-Datum: ${new Date().toLocaleDateString('cs-CZ')}
-
-CELKOVÝ PŘEHLED
-- Počet areálů: ${data.length}
-- Celková výměra: ${totalArea.toLocaleString()} m²
-- Celková délka oplocení: ${totalFence.toLocaleString()} bm
-
-KATEGORIE
-- Kategorie I: ${data.filter(a => a.kategorie === 'I.').length} areálů
-- Kategorie II: ${data.filter(a => a.kategorie === 'II.').length} areálů
-- Bez kategorie: ${data.filter(a => !a.kategorie).length} areálů
-
-OKRESY
-- České Budějovice: ${data.filter(a => a.okres === 'CB').length} areálů
-- Tábor: ${data.filter(a => a.okres === 'TA').length} areálů
-- Český Krumlov: ${data.filter(a => a.okres === 'CK').length} areálů
-- Prachatice: ${data.filter(a => a.okres === 'PT').length} areálů
-- Písek: ${data.filter(a => a.okres === 'PI').length} areálů
-- Strakonice: ${data.filter(a => a.okres === 'ST').length} areálů
-
-TOP 5 NEJVĚTŠÍCH AREÁLŮ
-${data.sort((a,b) => b.vymera - a.vymera).slice(0,5).map((a,i) => `${i+1}. ${a.nazev} - ${a.vymera.toLocaleString()} m²`).join('\n')}
-`;
-            const blob = new Blob([report], { type:'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url; link.download = 'vodovody_report.txt';
-            link.click();
-            URL.revokeObjectURL(url);
-        };
-
-        // ===== MODALY =====
-        const openExportModal = () => document.getElementById('exportModal').classList.add('active');
-        const openHelpModal = () => document.getElementById('helpModal').classList.add('active');
-        const closeModal = (id) => document.getElementById(id).classList.remove('active');
-
-        // ===== LEGENDA =====
-        const legend = L.control({ position: 'bottomleft' });
-        legend.onAdd = function() {
-            const div = L.DomUtil.create('div', 'legend');
-            div.innerHTML = `
-                <div class="legend-title">🎨 Barevná legenda</div>
-                <div class="legend-item"><div class="legend-color" style="background:#dc2626"></div><span>Kategorie I (vysoká priorita)</span></div>
-                <div class="legend-item"><div class="legend-color" style="background:#f97316"></div><span>Kategorie II (střední priorita)</span></div>
-                <div class="legend-item"><div class="legend-color" style="background:#64748b"></div><span>Bez kategorie</span></div>
-            `;
-            return div;
-        };
-        legend.addTo(map);
-
-        // ===== START - vykresli všechny areály =====
-        createMarkers(arealData);
-    </script>
+// První vykreslení aplikace
+render();
+</script>
 </body>
 </html>
