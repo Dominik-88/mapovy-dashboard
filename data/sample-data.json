@@ -1,0 +1,59 @@
+{
+  "areas": [
+    {
+      "id": 1,
+      "name": "Central District",
+      "region": "North",
+      "coordinates": {
+        "lat": 50.0836,
+        "lng": 14.4368
+      },
+      "population": 125000,
+      "area_km2": 45.5,
+      "description": "Main urban area with commercial and residential zones"
+    },
+    {
+      "id": 2,
+      "name": "Industrial Zone",
+      "region": "South",
+      "coordinates": {
+        "lat": 49.9750,
+        "lng": 14.5500
+      },
+      "population": 35000,
+      "area_km2": 78.2,
+      "description": "Manufacturing and logistics hub"
+    },
+    {
+      "id": 3,
+      "name": "Green Park Area",
+      "region": "East",
+      "coordinates": {
+        "lat": 50.0500,
+        "lng": 14.6200
+      },
+      "population": 8500,
+      "area_km2": 120.0,
+      "description": "Natural reserve and recreational space"
+    },
+    {
+      "id": 4,
+      "name": "Residential Complex",
+      "region": "West",
+      "coordinates": {
+        "lat": 50.1050,
+        "lng": 14.3200
+      },
+      "population": 95000,
+      "area_km2": 32.8,
+      "description": "Modern housing developments and apartments"
+    }
+  ],
+  "metadata": {
+    "version": "1.0",
+    "created": "2025-12-16T23:13:55Z",
+    "total_areas": 4,
+    "total_population": 263500,
+    "total_area_km2": 276.5
+  }
+}
