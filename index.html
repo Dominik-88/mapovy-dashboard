@@ -51,15 +51,56 @@
 <div class="flex flex-1 overflow-hidden">
 
   <!-- SIDE PANEL -->
-  <aside class="hidden sm:flex w-80 bg-slate-100 border-r border-slate-200 flex-col">
-    <div class="p-4 border-b font-semibold">
-      Ovládání
-    </div>
+  <!-- SIDE PANEL -->
+<aside class="hidden sm:flex w-80 bg-slate-100 border-r border-slate-200 flex-col">
 
-    <div class="p-4 text-sm text-slate-600">
-      (Filtry, statistiky, trasy – přijdou v další fázi)
+  <!-- Filtry -->
+  <div class="p-4 border-b">
+    <div class="font-semibold mb-3">Filtry</div>
+
+    <input id="filterText"
+      type="text"
+      placeholder="Název / okres"
+      class="w-full mb-2 px-2 py-1 text-sm border rounded" />
+
+    <select id="filterOkres"
+      class="w-full mb-2 px-2 py-1 text-sm border rounded">
+      <option value="">Všechny okresy</option>
+    </select>
+
+    <select id="filterKategorie"
+      class="w-full mb-2 px-2 py-1 text-sm border rounded">
+      <option value="">Všechny kategorie</option>
+      <option value="I.">I.</option>
+      <option value="II.">II.</option>
+      <option value="">Bez</option>
+    </select>
+
+    <div class="flex gap-2">
+      <input id="filterMinVymera"
+        type="number"
+        placeholder="Min m²"
+        class="w-1/2 px-2 py-1 text-sm border rounded" />
+      <input id="filterMaxVymera"
+        type="number"
+        placeholder="Max m²"
+        class="w-1/2 px-2 py-1 text-sm border rounded" />
     </div>
-  </aside>
+  </div>
+
+  <!-- Statistiky -->
+  <div class="p-4 border-b">
+    <div class="font-semibold mb-2">Statistiky</div>
+    <div class="text-sm text-slate-700 space-y-1">
+      <div>Počet: <span id="statCount">–</span></div>
+      <div>Výměra: <span id="statVymera">–</span> m²</div>
+      <div>Oplocení: <span id="statOploceni">–</span> m</div>
+      <div>Průměr: <span id="statAvg">–</span> m²</div>
+    </div>
+  </div>
+
+</aside>
+
 
   <!-- MAP -->
   <main class="flex-1 relative">
@@ -137,6 +178,93 @@ function createAreal(data) {
     updated_at: new Date().toISOString()
   };
 }
+<script>
+/* =====================================================
+   FILTERS
+===================================================== */
+const Filters = {
+  state: {
+    text: '',
+    okres: '',
+    kategorie: '',
+    minVymera: null,
+    maxVymera: null
+  },
+
+  init(data) {
+    this.fillOkresy(data);
+
+    document.getElementById('filterText')
+      .addEventListener('input', e => {
+        this.state.text = e.target.value.toLowerCase();
+        App.refresh();
+      });
+
+    document.getElementById('filterOkres')
+      .addEventListener('change', e => {
+        this.state.okres = e.target.value;
+        App.refresh();
+      });
+
+    document.getElementById('filterKategorie')
+      .addEventListener('change', e => {
+        this.state.kategorie = e.target.value;
+        App.refresh();
+      });
+
+    document.getElementById('filterMinVymera')
+      .addEventListener('input', e => {
+        this.state.minVymera = e.target.value ? Number(e.target.value) : null;
+        App.refresh();
+      });
+
+    document.getElementById('filterMaxVymera')
+      .addEventListener('input', e => {
+        this.state.maxVymera = e.target.value ? Number(e.target.value) : null;
+        App.refresh();
+      });
+  },
+
+  fillOkresy(data) {
+    const select = document.getElementById('filterOkres');
+    const okresy = [...new Set(data.map(a => a.okres))].sort();
+
+    okresy.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o;
+      opt.textContent = o;
+      select.appendChild(opt);
+    });
+  }
+};
+
+function applyFilters(data, f) {
+  return data.filter(a =>
+    (!f.text || a.nazev.toLowerCase().includes(f.text) || a.okres.toLowerCase().includes(f.text)) &&
+    (!f.okres || a.okres === f.okres) &&
+    (!f.kategorie || a.kategorie === f.kategorie) &&
+    (!f.minVymera || a.vymera >= f.minVymera) &&
+    (!f.maxVymera || a.vymera <= f.maxVymera)
+  );
+}
+</script>
+<script>
+/* =====================================================
+   STATS
+===================================================== */
+const Stats = {
+  render(data) {
+    const totalVymera = data.reduce((s,a)=>s+a.vymera,0);
+    const totalOploceni = data.reduce((s,a)=>s+a.oploceni,0);
+
+    document.getElementById('statCount').textContent = data.length;
+    document.getElementById('statVymera').textContent = totalVymera;
+    document.getElementById('statOploceni').textContent = totalOploceni;
+    document.getElementById('statAvg').textContent =
+      data.length ? Math.round(totalVymera / data.length) : 0;
+  }
+};
+</script>
 
 /* =====================================================
    MAP
@@ -190,34 +318,47 @@ const MapApp = {
   }
 };
 
+<script>
 /* =====================================================
-   BOOTSTRAP
+   APP CONTROLLER
 ===================================================== */
-document.addEventListener('DOMContentLoaded', () => {
+const App = {
+  data: [],
 
-  MapApp.init();
+  init() {
+    MapApp.init();
+    this.data = Store.load();
 
-  let data = Store.load();
+    if (this.data.length === 0) {
+      this.data = [
+        createAreal({
+          nazev: 'VDJ Demo',
+          okres: 'CB',
+          kategorie: 'I.',
+          vymera: 3300,
+          oploceni: 290,
+          lat: 49.305131,
+          lon: 14.166126
+        })
+      ];
+      Store.save(this.data);
+    }
 
-  // pokud není nic v LocalStorage, vložíme DEMO záznam
-  if (data.length === 0) {
-    data = [
-      createAreal({
-        nazev: 'VDJ Demo',
-        okres: 'CB',
-        kategorie: 'I.',
-        vymera: 3300,
-        oploceni: 290,
-        lat: 49.305131,
-        lon: 14.166126
-      })
-    ];
-    Store.save(data);
+    Filters.init(this.data);
+    this.refresh();
+  },
+
+  refresh() {
+    const filtered = applyFilters(this.data, Filters.state);
+    MapApp.render(filtered);
+    Stats.render(filtered);
   }
+};
 
-  MapApp.render(data);
-});
+document.addEventListener('DOMContentLoaded', () => App.init());
 </script>
+
 
 </body>
 </html>
+
