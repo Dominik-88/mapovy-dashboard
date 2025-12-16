@@ -1,318 +1,706 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <title>Vodárenské areály - Management systém</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
-          crossorigin=""/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
         #map { height: 100vh; width: 100%; }
-        .top-bar { position: fixed; top: 0; left: 0; right: 0; background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: white; padding: 12px 15px; z-index: 1001; box-shadow: 0 2px 10px rgba(0,0,0,0.3); display: flex; justify-content: space-between; align-items: center; }
-        .top-bar h1 { font-size: 16px; font-weight: 700; }
-        .top-bar-btn { padding: 8px 14px; background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; margin-left: 8px; }
-        .controls { position: fixed; top: 60px; right: 10px; z-index: 1000; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); max-width: 340px; max-height: calc(100vh - 80px); overflow-y: auto; }
-        .control-section { margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e2e8f0; }
-        .control-section:last-child { border-bottom: none; margin-bottom: 0; }
-        .section-title { font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 10px; }
-        .control-group { margin-bottom: 10px; }
-        .control-group:last-child { margin-bottom: 0; }
-        label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 11px; color: #475569; }
-        select, input, button { width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 5px; font-size: 12px; }
-        button { background: #3b82f6; color: white; font-weight: 600; cursor: pointer; border: none; }
-        button:active { background: #2563eb; }
-        .btn-success { background: #10b981; }
-        .btn-success:active { background: #059669; }
-        .btn-danger { background: #ef4444; }
-        .btn-danger:active { background: #dc2626; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .stat-card { background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0; text-align: center; }
-        .stat-card.warning { background: #fef3c7; border-color: #fbbf24; }
-        .stat-card.danger { background: #fee2e2; border-color: #ef4444; }
-        .stat-value { font-size: 18px; font-weight: 700; color: #1e293b; }
-        .stat-label { font-size: 10px; color: #64748b; margin-top: 2px; }
-        .legend { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
-        .legend-title { font-weight: 700; margin-bottom: 8px; font-size: 12px; }
-        .legend-item { display: flex; align-items: center; margin-bottom: 6px; font-size: 11px; }
-        .legend-color { width: 18px; height: 18px; border-radius: 50%; margin-right: 8px; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
-        @media (max-width: 768px) {
-            .top-bar h1 { font-size: 14px; }
-            .controls { max-width: calc(100vw - 20px); }
+
+        .top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            padding: 15px 20px;
+            z-index: 1001;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
+
+        .top-bar h1 { font-size: 20px; font-weight: 700; }
+
+        .top-bar-actions { display: flex; gap: 10px; }
+
+        .top-bar-btn {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .top-bar-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .controls {
+            position: absolute;
+            top: 80px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            max-width: 340px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+
+        .control-section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e2e8f0; }
+        .control-section:last-child { border-bottom: none; margin-bottom: 0; }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        label { display:block; font-weight:600; margin-bottom:6px; font-size:12px; color:#475569; }
+
+        select, input, button { width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:6px; font-size:13px; }
+
+        input:focus, select:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
+
+        button { background:#3b82f6; color:white; font-weight:600; cursor:pointer; border:none; transition:all 0.2s; }
+        button:hover { background:#2563eb; transform:translateY(-1px); box-shadow:0 4px 12px rgba(59,130,246,0.3); }
+        button:active { transform:translateY(0); }
+
+        .btn-secondary { background:#64748b; }
+        .btn-secondary:hover { background:#475569; }
+
+        .btn-success { background:#10b981; }
+        .btn-success:hover { background:#059669; }
+
+        .btn-danger { background:#ef4444; }
+        .btn-danger:hover { background:#dc2626; }
+
+        .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+        .stat-card { background: linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%); padding:12px; border-radius:6px; border:1px solid #e2e8f0; }
+        .stat-value { font-size:20px; font-weight:700; color:#1e293b; margin-bottom:4px; }
+        .stat-label { font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; }
+
+        .route-planner { background:#fef3c7; padding:12px; border-radius:6px; border:1px solid #fbbf24; }
+        .route-info { display:flex; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px solid #fbbf24; }
+        .route-metric { text-align:center; }
+        .route-metric-value { font-size:18px; font-weight:700; color:#92400e; }
+        .route-metric-label { font-size:10px; color:#92400e; margin-top:2px; }
+
+        .selected-areals { margin-top:10px; }
+        .areal-chip { display:inline-block; background:white; padding:6px 12px; border-radius:20px; margin:4px; font-size:11px; border:1px solid #fbbf24; color:#92400e; font-weight:600; }
+
+        .leaflet-popup-content { margin:15px; min-width:250px; }
+        .popup-title { font-size:18px; font-weight:700; margin-bottom:12px; color:#1e293b; border-bottom:2px solid #3b82f6; padding-bottom:8px; }
+        .popup-detail { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #e2e8f0; font-size:13px; }
+        .popup-detail:last-of-type { border-bottom:none; }
+        .popup-label { color:#64748b; font-weight:500; }
+        .popup-value { font-weight:700; color:#1e293b; }
+
+        .popup-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+        .popup-btn { display:block; text-align:center; padding:10px; color:white; text-decoration:none; border-radius:6px; font-size:12px; font-weight:600; transition:all 0.2s; }
+        .popup-btn-primary { background:#3b82f6; }
+        .popup-btn-primary:hover { background:#2563eb; }
+        .popup-btn-success { background:#10b981; }
+        .popup-btn-success:hover { background:#059669; }
+
+        .legend { background:white; padding:12px; border-radius:8px; box-shadow:0 4px 20px rgba(0,0,0,0.15); }
+        .legend-title { font-weight:700; margin-bottom:10px; font-size:13px; color:#1e293b; }
+        .legend-item { display:flex; align-items:center; margin-bottom:8px; font-size:12px; }
+        .legend-color { width:24px; height:24px; border-radius:50%; margin-right:10px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+
+        .modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:2000; align-items:center; justify-content:center; }
+        .modal.active { display:flex; }
+        .modal-content { background:white; border-radius:12px; padding:30px; max-width:600px; max-height:80vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+        .modal-header { font-size:24px; font-weight:700; margin-bottom:20px; color:#1e293b; }
+        .modal-close { float:right; font-size:28px; cursor:pointer; color:#64748b; line-height:1; }
+        .modal-close:hover { color:#1e293b; }
+
+        .export-options { display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:20px; }
+        .export-card { padding:20px; border:2px solid #e2e8f0; border-radius:8px; text-align:center; cursor:pointer; transition:all 0.2s; }
+        .export-card:hover { border-color:#3b82f6; background:#f8fafc; transform:translateY(-2px); }
+        .export-icon { font-size:36px; margin-bottom:10px; }
+        .export-title { font-weight:700; margin-bottom:5px; color:#1e293b; }
+        .export-desc { font-size:12px; color:#64748b; }
+
+        .checkbox-group { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+        .checkbox-group input[type="checkbox"] { width:auto; }
+
+        @media (max-width:768px) {
+            .top-bar { flex-direction:column; align-items:flex-start; gap:10px; }
+            .top-bar h1 { font-size:16px; }
+            .top-bar-actions { width:100%; justify-content:flex-start; flex-wrap:wrap; }
+            .controls { max-width:calc(100vw - 20px); top:120px; }
+            .stats-grid { grid-template-columns:1fr; }
+        }
+
+        /* small custom marker style fallback */
+        .custom-marker { display:flex; align-items:center; justify-content:center; }
     </style>
 </head>
 <body>
     <div class="top-bar">
-        <h1>🚰 Vodárenské areály</h1>
-        <div>
-            <button class="top-bar-btn" onclick="exportCSV()">📥 Export</button>
+        <h1>🚰 Vodárenské areály - Management systém</h1>
+        <div class="top-bar-actions">
+            <button class="top-bar-btn" onclick="openExportModal()">📥 Export</button>
+            <button class="top-bar-btn" onclick="openHelpModal()">❓ Nápověda</button>
         </div>
     </div>
-    
+
     <div id="map"></div>
-    
+
     <div class="controls">
         <div class="control-section">
-            <div class="section-title">🔍 Filtry</div>
+            <div class="section-title"><span class="section-icon">🔍</span>Filtry a vyhledávání</div>
+
             <div class="control-group">
-                <label>Vyhledat</label>
-                <input type="text" id="search" placeholder="Název..." oninput="applyFilters()">
+                <label>Vyhledat areál</label>
+                <input type="text" id="searchInput" placeholder="Zadejte název areálu..." oninput="searchAreal()">
             </div>
+
             <div class="control-group">
-                <label>Okres</label>
-                <select id="okres" onchange="applyFilters()">
-                    <option value="all">Všechny</option>
-                    <option value="CB">České Budějovice</option>
-                    <option value="TA">Tábor</option>
-                    <option value="CK">Český Krumlov</option>
-                    <option value="PT">Prachatice</option>
-                    <option value="PI">Písek</option>
-                    <option value="ST">Strakonice</option>
+                <label>Filtr podle okresu</label>
+                <select id="okresFilter" onchange="applyFilters()">
+                    <option value="all">Všechny okresy (41)</option>
+                    <option value="CB">České Budějovice (18)</option>
+                    <option value="TA">Tábor (11)</option>
+                    <option value="CK">Český Krumlov (4)</option>
+                    <option value="PT">Prachatice (3)</option>
+                    <option value="PI">Písek (2)</option>
+                    <option value="ST">Strakonice (2)</option>
                 </select>
             </div>
+
             <div class="control-group">
-                <label>Kategorie</label>
-                <select id="kategorie" onchange="applyFilters()">
-                    <option value="all">Všechny</option>
-                    <option value="I.">Kategorie I</option>
-                    <option value="II.">Kategorie II</option>
-                    <option value="">Bez kategorie</option>
+                <label>Filtr podle kategorie</label>
+                <select id="katFilter" onchange="applyFilters()">
+                    <option value="all">Všechny kategorie (41)</option>
+                    <option value="I.">Kategorie I - Vysoká priorita (23)</option>
+                    <option value="II.">Kategorie II - Střední priorita (15)</option>
+                    <option value="">Bez kategorie (3)</option>
                 </select>
             </div>
+
             <div class="control-group">
-                <label>Zabezpečení</label>
-                <select id="zabezpeceni" onchange="applyFilters()">
-                    <option value="all">Všechny</option>
-                    <option value="dobrý">Dobrý stav</option>
-                    <option value="rizikový">Rizikový</option>
-                    <option value="havarijní">Havarijní</option>
-                </select>
+                <label>Minimální výměra (m²)</label>
+                <input type="number" id="minArea" placeholder="např. 1000" oninput="applyFilters()">
             </div>
         </div>
-        
+
         <div class="control-section">
-            <div class="section-title">📊 Statistiky</div>
+            <div class="section-title"><span class="section-icon">📊</span>Statistiky</div>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value" id="count">41</div>
+                    <div class="stat-value" id="visibleCount">41</div>
                     <div class="stat-label">Areálů</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="area">198k</div>
-                    <div class="stat-label">m²</div>
+                    <div class="stat-value" id="totalArea">198k</div>
+                    <div class="stat-label">m² celkem</div>
                 </div>
-                <div class="stat-card warning">
-                    <div class="stat-value" id="risky">3</div>
-                    <div class="stat-label">🚨 Rizikové</div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalFence">10.9k</div>
+                    <div class="stat-label">bm oplocení</div>
                 </div>
-                <div class="stat-card danger">
-                    <div class="stat-value" id="critical">2</div>
-                    <div class="stat-label">🟥 Havarijní</div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avgArea">4.8k</div>
+                    <div class="stat-label">Ø výměra</div>
                 </div>
             </div>
         </div>
-        
+
         <div class="control-section">
-            <button onclick="resetView()">🔄 Reset pohledu</button>
-            <button class="btn-success" style="margin-top:8px" onclick="showAll()">👁️ Zobrazit vše</button>
+            <div class="section-title"><span class="section-icon">🗺️</span>Plánovač tras</div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="routeMode" onchange="toggleRouteMode()">
+                <label style="margin: 0;">Aktivovat režim výběru tras</label>
+            </div>
+
+            <div id="routePlanner" style="display:none;">
+                <div class="route-planner">
+                    <div style="font-weight:600; margin-bottom:8px; color:#92400e;">Klikněte na areály pro vytvoření trasy</div>
+                    <div class="selected-areals" id="selectedAreals"></div>
+                    <div class="route-info">
+                        <div class="route-metric">
+                            <div class="route-metric-value" id="routeDistance">0</div>
+                            <div class="route-metric-label">Kilometry</div>
+                        </div>
+                        <div class="route-metric">
+                            <div class="route-metric-value" id="routeCost">0</div>
+                            <div class="route-metric-label">Kč (palivo)</div>
+                        </div>
+                        <div class="route-metric">
+                            <div class="route-metric-value" id="routeTime">0</div>
+                            <div class="route-metric-label">Minut</div>
+                        </div>
+                    </div>
+                    <button class="btn-success" style="margin-top:12px;" onclick="optimizeRoute()">🎯 Optimalizovat trasu</button>
+                    <button class="btn-danger" style="margin-top:8px;" onclick="clearRoute()">🗑️ Vymazat trasu</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <div class="section-title"><span class="section-icon">⚙️</span>Nástroje</div>
+            <button onclick="resetView()">🔄 Resetovat pohled</button>
+            <button class="btn-secondary" style="margin-top:8px;" onclick="showAllAreals()">👁️ Zobrazit všechny areály</button>
+            <button class="btn-success" style="margin-top:8px;" onclick="generateReport()">📋 Generovat report</button>
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
-            crossorigin=""></script>
+    <div id="exportModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('exportModal')">&times;</span>
+            <div class="modal-header">Export dat</div>
+            <div class="export-options">
+                <div class="export-card" onclick="exportCSV()">
+                    <div class="export-icon">📄</div>
+                    <div class="export-title">CSV</div>
+                    <div class="export-desc">Pro Excel a Google Sheets</div>
+                </div>
+                <div class="export-card" onclick="exportGeoJSON()">
+                    <div class="export-icon">🗺️</div>
+                    <div class="export-title">GeoJSON</div>
+                    <div class="export-desc">Pro GIS nástroje</div>
+                </div>
+                <div class="export-card" onclick="exportKML()">
+                    <div class="export-icon">🌍</div>
+                    <div class="export-title">KML</div>
+                    <div class="export-desc">Pro Google Earth</div>
+                </div>
+                <div class="export-card" onclick="copyGoogleMapsLink()">
+                    <div class="export-icon">📍</div>
+                    <div class="export-title">Google Maps</div>
+                    <div class="export-desc">Sdílet odkaz</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('helpModal')">&times;</span>
+            <div class="modal-header">Nápověda</div>
+            <h3 style="margin-top:20px; color:#1e293b;">Základní ovládání</h3>
+            <ul style="margin-left:20px; line-height:1.8; color:#475569;">
+                <li><strong>Zoom:</strong> Kolečko myši nebo pinch na mobilu</li>
+                <li><strong>Pohyb:</strong> Tažení myší/prstem</li>
+                <li><strong>Detail areálu:</strong> Kliknutí na barevný bod</li>
+                <li><strong>Navigace:</strong> Tlačítko v detailu areálu</li>
+            </ul>
+
+            <h3 style="margin-top:20px; color:#1e293b;">Pokročilé funkce</h3>
+            <ul style="margin-left:20px; line-height:1.8; color:#475569;">
+                <li><strong>Plánovač tras:</strong> Aktivujte checkbox a klikejte na areály pro výpočet trasy</li>
+                <li><strong>Optimalizace:</strong> Automaticky seřadí areály pro nejkratší trasu</li>
+                <li><strong>Filtry:</strong> Kombinujte více filtrů pro přesné výsledky</li>
+                <li><strong>Export:</strong> Uložte data ve formátu CSV, GeoJSON nebo KML</li>
+            </ul>
+
+            <h3 style="margin-top:20px; color:#1e293b;">Barevné kódování</h3>
+            <ul style="margin-left:20px; line-height:1.8; color:#475569;">
+                <li>🔴 <strong>Červená:</strong> Kategorie I (vysoká priorita)</li>
+                <li>🟠 <strong>Oranžová:</strong> Kategorie II (střední priorita)</li>
+                <li>⚪ <strong>Šedá:</strong> Bez kategorie</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script>
-        const data = [
-            {n:"VDJ Amerika II",o:"PI",k:"I.",s:"dobrý",op:293,v:3303,lat:49.305131,lon:14.166126},
-            {n:"VDJ Drahonice",o:"ST",k:"I.",s:"dobrý",op:376,v:5953,lat:49.202902,lon:14.063713},
-            {n:"VDJ Vodňany",o:"ST",k:"I.",s:"dobrý",op:252,v:1594,lat:49.147778,lon:14.175278},
-            {n:"VDJ Hlavatce",o:"CB",k:"",s:"rizikový",op:424,v:7968,lat:49.063584,lon:14.267751},
-            {n:"VDJ Šibeniční vrch I",o:"PT",k:"I.",s:"dobrý",op:245,v:1835,lat:49.013333,lon:13.994444},
-            {n:"ÚV Husinecka přehrada",o:"PT",k:"",s:"dobrý",op:703,v:4908,lat:49.058889,lon:13.994722},
-            {n:"VDJ Šibeniční vrch II",o:"PT",k:"I.",s:"dobrý",op:340,v:3206,lat:49.02671,lon:13.994001},
-            {n:"VDJ Zálužany",o:"PI",k:"",s:"dobrý",op:299,v:2350,lat:49.316389,lon:14.096111},
-            {n:"VDJ Ptáčník",o:"PT",k:"II.",s:"dobrý",op:239,v:1070,lat:49.091111,lon:13.948056},
-            {n:"VDJ Zdoba",o:"CB",k:"II.",s:"havarijní",op:225,v:15523,lat:49.212422,lon:14.338095},
-            {n:"VDJ Domoradice",o:"CK",k:"I.",s:"dobrý",op:450,v:4148,lat:48.812778,lon:14.273056},
-            {n:"VDJ Horní Brána",o:"CK",k:"I.",s:"dobrý",op:187,v:1665,lat:48.80797,lon:14.329352},
-            {n:"VDJ Netřebice",o:"CK",k:"I.",s:"dobrý",op:136,v:877,lat:48.856389,lon:14.318611},
-            {n:"VDJ Plešivec",o:"CK",k:"I.",s:"dobrý",op:119,v:975,lat:48.823056,lon:14.165278},
-            {n:"VDJ Doudleby",o:"CB",k:"II.",s:"dobrý",op:79,v:413,lat:48.991944,lon:14.505556},
-            {n:"VDJ Jankov",o:"CB",k:"I.",s:"dobrý",op:106,v:784,lat:49.033566,lon:14.492817},
-            {n:"VDJ Hosín II",o:"CB",k:"I.",s:"rizikový",op:399,v:4173,lat:49.016111,lon:14.452778},
-            {n:"VDJ Chlum",o:"CB",k:"II.",s:"dobrý",op:63,v:535,lat:49.091944,lon:14.534167},
-            {n:"VDJ Chotýčany",o:"CB",k:"II.",s:"dobrý",op:338,v:4775,lat:49.133611,lon:14.498889},
-            {n:"VDJ Rudolfov III",o:"CB",k:"I.",s:"dobrý",op:174,v:1868,lat:48.988889,lon:14.595833},
-            {n:"VDJ Rimov - Vesce",o:"CB",k:"I.",s:"dobrý",op:99,v:662,lat:48.842778,lon:14.525},
-            {n:"VDJ Hosin",o:"CB",k:"II.",s:"dobrý",op:125,v:809,lat:49.013889,lon:14.450278},
-            {n:"VDJ Včelná",o:"CB",k:"II.",s:"dobrý",op:476,v:8660,lat:48.966389,lon:14.454722},
-            {n:"VDJ Húry",o:"CB",k:"I.",s:"havarijní",op:0,v:395,lat:49.058611,lon:14.481944},
-            {n:"VDJ Chlumec",o:"CB",k:"II.",s:"dobrý",op:110,v:811,lat:49.054167,lon:14.488889},
-            {n:"VDJ Olešník",o:"CB",k:"I.",s:"dobrý",op:117,v:380,lat:49.056944,lon:14.498611},
-            {n:"ČS Bukovec",o:"CB",k:"I.",s:"dobrý",op:300,v:4943,lat:48.949167,lon:14.480833},
-            {n:"VDJ Heřman",o:"CB",k:"II.",s:"dobrý",op:119,v:982,lat:48.991667,lon:14.535},
-            {n:"ČS Vidov u řeky",o:"CB",k:"II.",s:"dobrý",op:212,v:2501,lat:48.950833,lon:14.479722},
-            {n:"Vrt Vidov",o:"CB",k:"II.",s:"dobrý",op:164,v:470,lat:48.951111,lon:14.480556},
-            {n:"ÚV Plav",o:"CB",k:"I.",s:"dobrý",op:1413,v:74777,lat:49.006111,lon:14.452778},
-            {n:"VDJ Čekanice",o:"TA",k:"I.",s:"dobrý",op:450,v:6344,lat:49.422197,lon:14.689896},
-            {n:"VDJ Svatá Anna",o:"TA",k:"I.",s:"dobrý",op:264,v:4192,lat:49.401133,lon:14.69864},
-            {n:"VDJ Bezděčín",o:"TA",k:"I.",s:"dobrý",op:169,v:1996,lat:49.381667,lon:14.700556},
-            {n:"VDJ Milevsko",o:"TA",k:"I.",s:"rizikový",op:129,v:823,lat:49.452521,lon:14.344102},
-            {n:"VDJ Hodušín",o:"TA",k:"II.",s:"dobrý",op:205,v:1708,lat:49.42967,lon:14.474214},
-            {n:"VDJ Všechov",o:"TA",k:"I.",s:"dobrý",op:199,v:1574,lat:49.430159,lon:14.623205},
-            {n:"VDJ Zlukov",o:"TA",k:"II.",s:"dobrý",op:184,v:1520,lat:49.196289,lon:14.736382},
-            {n:"ÚV Tábor",o:"TA",k:"II.",s:"dobrý",op:350,v:12262,lat:49.422872,lon:14.666426},
-            {n:"ČS Sudoměřice",o:"TA",k:"I.",s:"dobrý",op:220,v:2508,lat:49.368611,lon:14.720278},
-            {n:"Provozní Vodojem Tábor",o:"TA",k:"II.",s:"dobrý",op:155,v:1853,lat:49.413889,lon:14.659167}
+        // ===== DATA (beze změn) =====
+        const arealData = [
+            { nazev: "VDJ Amerika II", okres: "PI", kategorie: "I.", oploceni: 293, vymera: 3303, lat: 49.305131, lon: 14.166126 },
+            { nazev: "VDJ Drahonice", okres: "ST", kategorie: "I.", oploceni: 376, vymera: 5953, lat: 49.202902, lon: 14.063713 },
+            { nazev: "VDJ Vodňany", okres: "ST", kategorie: "I.", oploceni: 252, vymera: 1594, lat: 49.147778, lon: 14.175278 },
+            { nazev: "VDJ Hlavatce", okres: "CB", kategorie: "", oploceni: 424, vymera: 7968, lat: 49.063584, lon: 14.267751 },
+            { nazev: "VDJ Šibeniční vrch I", okres: "PT", kategorie: "I.", oploceni: 245, vymera: 1835, lat: 49.013333, lon: 13.994444 },
+            { nazev: "ÚV Husinecka přehrada", okres: "PT", kategorie: "", oploceni: 703, vymera: 4908, lat: 49.058889, lon: 13.994722 },
+            { nazev: "VDJ Šibeniční vrch II", okres: "PT", kategorie: "I.", oploceni: 340, vymera: 3206, lat: 49.026710, lon: 13.994001 },
+            { nazev: "VDJ Zálužany", okres: "PI", kategorie: "", oploceni: 299, vymera: 2350, lat: 49.316389, lon: 14.096111 },
+            { nazev: "VDJ Ptáčník", okres: "PT", kategorie: "II.", oploceni: 239, vymera: 1070, lat: 49.091111, lon: 13.948056 },
+            { nazev: "VDJ Zdoba", okres: "CB", kategorie: "II.", oploceni: 225, vymera: 15523, lat: 49.212422, lon: 14.338095 },
+            { nazev: "VDJ Domoradice", okres: "CK", kategorie: "I.", oploceni: 450, vymera: 4148, lat: 48.812778, lon: 14.273056 },
+            { nazev: "VDJ Horní Brána", okres: "CK", kategorie: "I.", oploceni: 187, vymera: 1665, lat: 48.807970, lon: 14.329352 },
+            { nazev: "VDJ Netřebice", okres: "CK", kategorie: "I.", oploceni: 136, vymera: 877, lat: 48.856389, lon: 14.318611 },
+            { nazev: "VDJ Plešivec", okres: "CK", kategorie: "I.", oploceni: 119, vymera: 975, lat: 48.823056, lon: 14.165278 },
+            { nazev: "VDJ Doudleby", okres: "CB", kategorie: "II.", oploceni: 79, vymera: 413, lat: 48.991944, lon: 14.505556 },
+            { nazev: "VDJ Jankov", okres: "CB", kategorie: "I.", oploceni: 106, vymera: 784, lat: 49.033566, lon: 14.492817 },
+            { nazev: "VDJ Hosín II", okres: "CB", kategorie: "I.", oploceni: 399, vymera: 4173, lat: 49.016111, lon: 14.452778 },
+            { nazev: "VDJ Chlum", okres: "CB", kategorie: "II.", oploceni: 63, vymera: 535, lat: 49.091944, lon: 14.534167 },
+            { nazev: "VDJ Chotýčany", okres: "CB", kategorie: "II.", oploceni: 338, vymera: 4775, lat: 49.133611, lon: 14.498889 },
+            { nazev: "VDJ Rudolfov III", okres: "CB", kategorie: "I.", oploceni: 174, vymera: 1868, lat: 48.988889, lon: 14.595833 },
+            { nazev: "VDJ Rimov - Vesce", okres: "CB", kategorie: "I.", oploceni: 99, vymera: 662, lat: 48.842778, lon: 14.525000 },
+            { nazev: "VDJ Hosin", okres: "CB", kategorie: "II.", oploceni: 125, vymera: 809, lat: 49.013889, lon: 14.450278 },
+            { nazev: "VDJ Včelná", okres: "CB", kategorie: "II.", oploceni: 476, vymera: 8660, lat: 48.966389, lon: 14.454722 },
+            { nazev: "VDJ Húry", okres: "CB", kategorie: "I.", oploceni: 0, vymera: 395, lat: 49.058611, lon: 14.481944 },
+            { nazev: "VDJ Chlumec", okres: "CB", kategorie: "II.", oploceni: 110, vymera: 811, lat: 49.054167, lon: 14.488889 },
+            { nazev: "VDJ Olešník", okres: "CB", kategorie: "I.", oploceni: 117, vymera: 380, lat: 49.056944, lon: 14.498611 },
+            { nazev: "ČS Bukovec", okres: "CB", kategorie: "I.", oploceni: 300, vymera: 4943, lat: 48.949167, lon: 14.480833 },
+            { nazev: "VDJ Heřman", okres: "CB", kategorie: "II.", oploceni: 119, vymera: 982, lat: 48.991667, lon: 14.535000 },
+            { nazev: "ČS Vidov u řeky", okres: "CB", kategorie: "II.", oploceni: 212, vymera: 2501, lat: 48.950833, lon: 14.479722 },
+            { nazev: "Vrt Vidov", okres: "CB", kategorie: "II.", oploceni: 164, vymera: 470, lat: 48.951111, lon: 14.480556 },
+            { nazev: "ÚV Plav", okres: "CB", kategorie: "I.", oploceni: 1413, vymera: 74777, lat: 49.006111, lon: 14.452778 },
+            { nazev: "VDJ Čekanice", okres: "TA", kategorie: "I.", oploceni: 450, vymera: 6344, lat: 49.422197, lon: 14.689896 },
+            { nazev: "VDJ Svatá Anna", okres: "TA", kategorie: "I.", oploceni: 264, vymera: 4192, lat: 49.401133, lon: 14.698640 },
+            { nazev: "VDJ Bezděčín", okres: "TA", kategorie: "I.", oploceni: 169, vymera: 1996, lat: 49.381667, lon: 14.700556 },
+            { nazev: "VDJ Milevsko", okres: "TA", kategorie: "I.", oploceni: 129, vymera: 823, lat: 49.452521, lon: 14.344102 },
+            { nazev: "VDJ Hodušín", okres: "TA", kategorie: "II.", oploceni: 205, vymera: 1708, lat: 49.429670, lon: 14.474214 },
+            { nazev: "VDJ Všechov", okres: "TA", kategorie: "I.", oploceni: 199, vymera: 1574, lat: 49.430159, lon: 14.623205 },
+            { nazev: "VDJ Zlukov", okres: "TA", kategorie: "II.", oploceni: 184, vymera: 1520, lat: 49.196289, lon: 14.736382 },
+            { nazev: "ÚV Tábor", okres: "TA", kategorie: "II.", oploceni: 350, vymera: 12262, lat: 49.422872, lon: 14.666426 },
+            { nazev: "ČS Sudoměřice", okres: "TA", kategorie: "I.", oploceni: 220, vymera: 2508, lat: 49.368611, lon: 14.720278 },
+            { nazev: "Provozní Vodojem Tábor", okres: "TA", kategorie: "II.", oploceni: 155, vymera: 1853, lat: 49.413889, lon: 14.659167 }
         ];
 
-        let map, markers = [];
+        // ===== MAPA =====
+        const map = L.map('map').setView([49.15, 14.35], 10);
 
-        function init() {
-            if (typeof L === 'undefined') {
-                setTimeout(init, 100);
-                return;
-            }
-            
-            map = L.map('map').setView([49.15, 14.35], 10);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap',
-                maxZoom: 19
-            }).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap',
+            maxZoom: 19
+        }).addTo(map);
 
-            const legend = L.control({position: 'bottomleft'});
-            legend.onAdd = function() {
-                const div = L.DomUtil.create('div', 'legend');
-                div.innerHTML = `
-                    <div class="legend-title">Legenda</div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background:#dc2626"></div>
-                        Kategorie I
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background:#f97316"></div>
-                        Kategorie II
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background:#64748b"></div>
-                        Bez kategorie
-                    </div>
-                `;
-                return div;
-            };
-            legend.addTo(map);
+        // ===== PROMĚNNÉ =====
+        let markers = [];
+        let selectedRoute = [];
+        let routeMode = false;
+        let routeLine = null;
 
-            createMarkers(data);
-        }
+        // ===== HELPERY =====
+        const getMarkerColor = (kategorie) => {
+            if (kategorie === 'I.') return '#dc2626';
+            if (kategorie === 'II.') return '#f97316';
+            return '#64748b';
+        };
 
-        function createMarkers(filtered) {
-            markers.forEach(m => map.removeLayer(m));
+        const calculateDistance = (lat1, lon1, lat2, lon2) => {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                     Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        };
+
+        // ===== VYKRESLOVÁNÍ MARKERŮ =====
+        const createMarkers = (data) => {
+            // odeber staré
+            markers.forEach(m => map.removeLayer(m.marker));
             markers = [];
 
-            filtered.forEach(d => {
-                const color = d.k === 'I.' ? '#dc2626' : d.k === 'II.' ? '#f97316' : '#64748b';
+            data.forEach(areal => {
+                const color = getMarkerColor(areal.kategorie);
+
                 const icon = L.divIcon({
-                    html: `<div style="background:${color};width:24px;height:24px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>`,
-                    iconSize: [24, 24],
-                    className: ''
+                    className: 'custom-marker',
+                    html: `<div style="background-color: ${color}; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
                 });
 
-                const m = L.marker([d.lat, d.lon], {icon}).addTo(map);
-                const sc = d.s === 'havarijní' ? 'danger' : d.s === 'rizikový' ? 'warning' : 'success';
-                
-                m.bindPopup(`
-                    <div style="font-family:system-ui;padding:10px;min-width:220px">
-                        <div style="font-size:15px;font-weight:700;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #3b82f6">${d.n}</div>
-                        <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #f1f5f9">
-                            <span style="color:#64748b">Okres:</span>
-                            <span style="font-weight:700">${d.o}</span>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #f1f5f9">
-                            <span style="color:#64748b">Kategorie:</span>
-                            <span style="font-weight:700">${d.k || 'Bez'}</span>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #f1f5f9">
-                            <span style="color:#64748b">Zabezpečení:</span>
-                            <span style="font-weight:700;color:${sc==='danger'?'#dc2626':sc==='warning'?'#d97706':'#059669'}">${d.s}</span>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #f1f5f9">
-                            <span style="color:#64748b">Výměra:</span>
-                            <span style="font-weight:700">${d.v.toLocaleString()} m²</span>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px">
-                            <span style="color:#64748b">Oplocení:</span>
-                            <span style="font-weight:700">${d.op.toLocaleString()} bm</span>
-                        </div>
-                        <a href="https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lon}" target="_blank" style="display:block;text-align:center;padding:10px;background:#3b82f6;color:white;text-decoration:none;border-radius:6px;font-size:12px;font-weight:600;margin-top:10px">
-                            🧭 Navigovat
-                        </a>
+                const marker = L.marker([areal.lat, areal.lon], { icon });
+
+                const popupContent = `
+                    <div class="popup-title">${areal.nazev}</div>
+                    <div class="popup-detail"><span class="popup-label">Okres:</span><span class="popup-value">${areal.okres}</span></div>
+                    <div class="popup-detail"><span class="popup-label">Kategorie:</span><span class="popup-value">${areal.kategorie || 'Bez kategorie'}</span></div>
+                    <div class="popup-detail"><span class="popup-label">Výměra:</span><span class="popup-value">${areal.vymera.toLocaleString()} m²</span></div>
+                    <div class="popup-detail"><span class="popup-label">Oplocení:</span><span class="popup-value">${areal.oploceni.toLocaleString()} bm</span></div>
+                    <div class="popup-actions">
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${areal.lat},${areal.lon}" target="_blank" class="popup-btn popup-btn-primary">🧭 Navigovat</a>
+                        <a href="#" onclick="addToRoute('${areal.nazev}'); return false;" class="popup-btn popup-btn-success">➕ Do trasy</a>
                     </div>
-                `);
-                
-                markers.push(m);
+                `;
+
+                marker.bindPopup(popupContent);
+
+                marker.on('click', () => {
+                    if (routeMode) addToRoute(areal.nazev);
+                });
+
+                marker.addTo(map);
+                markers.push({ marker, data: areal });
             });
 
-            updateStats(filtered);
-        }
+            updateStats(data);
+        };
 
-        function updateStats(filtered) {
-            document.getElementById('count').textContent = filtered.length;
-            const area = filtered.reduce((s, d) => s + d.v, 0);
-            document.getElementById('area').textContent = (area / 1000).toFixed(0) + 'k';
-            document.getElementById('risky').textContent = filtered.filter(d => d.s === 'rizikový').length;
-            document.getElementById('critical').textContent = filtered.filter(d => d.s === 'havarijní').length;
-        }
+        // ===== STATISTIKY =====
+        const updateStats = (data) => {
+            document.getElementById('visibleCount').textContent = data.length;
+            const totalArea = data.reduce((sum, a) => sum + a.vymera, 0);
+            const totalFence = data.reduce((sum, a) => sum + a.oploceni, 0);
+            const avgArea = data.length > 0 ? totalArea / data.length : 0;
 
-        function applyFilters() {
-            const search = document.getElementById('search').value.toLowerCase();
-            const okres = document.getElementById('okres').value;
-            const kat = document.getElementById('kategorie').value;
-            const zab = document.getElementById('zabezpeceni').value;
+            document.getElementById('totalArea').textContent = (totalArea / 1000).toFixed(1) + 'k';
+            document.getElementById('totalFence').textContent = (totalFence / 1000).toFixed(1) + 'k';
+            document.getElementById('avgArea').textContent = (avgArea / 1000).toFixed(1) + 'k';
+        };
 
-            let filtered = data;
-            if (search) filtered = filtered.filter(d => d.n.toLowerCase().includes(search));
-            if (okres !== 'all') filtered = filtered.filter(d => d.o === okres);
-            if (kat !== 'all') filtered = filtered.filter(d => d.k === kat);
-            if (zab !== 'all') filtered = filtered.filter(d => d.s === zab);
+        // ===== FILTRY A VYHLEDÁVÁNÍ =====
+        const applyFilters = () => {
+            const okresFilter = document.getElementById('okresFilter').value;
+            const katFilter = document.getElementById('katFilter').value;
+            const minArea = parseInt(document.getElementById('minArea').value) || 0;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            let filtered = arealData.slice();
+
+            if (okresFilter !== 'all') filtered = filtered.filter(a => a.okres === okresFilter);
+            if (katFilter !== 'all') filtered = filtered.filter(a => a.kategorie === katFilter);
+            if (minArea > 0) filtered = filtered.filter(a => a.vymera >= minArea);
+            if (searchTerm) filtered = filtered.filter(a => a.nazev.toLowerCase().includes(searchTerm));
 
             createMarkers(filtered);
-        }
+        };
 
-        function resetView() {
-            map.setView([49.15, 14.35], 10);
-        }
+        const searchAreal = () => { applyFilters(); };
 
-        function showAll() {
-            document.getElementById('search').value = '';
-            document.getElementById('okres').value = 'all';
-            document.getElementById('kategorie').value = 'all';
-            document.getElementById('zabezpeceni').value = 'all';
+        // ===== ZOBRAZOVACÍ FUNKCE =====
+        const resetView = () => { map.setView([49.15, 14.35], 10); };
+        const showAllAreals = () => {
+            document.getElementById('okresFilter').value = 'all';
+            document.getElementById('katFilter').value = 'all';
+            document.getElementById('minArea').value = '';
+            document.getElementById('searchInput').value = '';
             applyFilters();
-        }
+        };
 
-        function exportCSV() {
-            const csv = [
-                'Nazev;Okres;Kategorie;Zabezpeceni;Vymera_m2;Oploceni_bm;GPS_Lat;GPS_Lon',
-                ...data.map(d => `"${d.n}";${d.o};${d.k||'Bez'};${d.s};${d.v};${d.op};${d.lat};${d.lon}`)
-            ].join('\n');
-            
-            const blob = new Blob(['\uFEFF' + csv], {type: 'text/csv;charset=utf-8'});
+        // ===== PLÁNOVAČ TRAS =====
+        const toggleRouteMode = () => {
+            routeMode = document.getElementById('routeMode').checked;
+            document.getElementById('routePlanner').style.display = routeMode ? 'block' : 'none';
+            if (!routeMode) clearRoute();
+        };
+
+        const addToRoute = (arealName) => {
+            if (!routeMode) return;
+            const areal = arealData.find(a => a.nazev === arealName);
+            if (!areal) return;
+            if (selectedRoute.find(a => a.nazev === arealName)) return;
+            selectedRoute.push(areal);
+            updateRouteDisplay();
+        };
+
+        const updateRouteDisplay = () => {
+            const container = document.getElementById('selectedAreals');
+            container.innerHTML = selectedRoute.map(a => `<span class="areal-chip">${a.nazev}</span>`).join('');
+
+            if (selectedRoute.length >= 2) {
+                let totalDist = 0;
+                for (let i = 0; i < selectedRoute.length - 1; i++) {
+                    totalDist += calculateDistance(
+                        selectedRoute[i].lat, selectedRoute[i].lon,
+                        selectedRoute[i+1].lat, selectedRoute[i+1].lon
+                    );
+                }
+                const fuelCost = totalDist * 0.08 * 38; // tvůj vzorec (l/km * cena)
+                const timeMinutes = Math.round(totalDist / 50 * 60);
+
+                document.getElementById('routeDistance').textContent = totalDist.toFixed(1);
+                document.getElementById('routeCost').textContent = Math.round(fuelCost);
+                document.getElementById('routeTime').textContent = timeMinutes;
+
+                drawRouteLine();
+            } else {
+                document.getElementById('routeDistance').textContent = '0';
+                document.getElementById('routeCost').textContent = '0';
+                document.getElementById('routeTime').textContent = '0';
+                if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+            }
+        };
+
+        const drawRouteLine = () => {
+            if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+            const coords = selectedRoute.map(a => [a.lat, a.lon]);
+            routeLine = L.polyline(coords, { color: '#3b82f6', weight: 4, opacity: 0.7, dashArray: '10,10' }).addTo(map);
+            map.fitBounds(routeLine.getBounds(), { padding: [50,50] });
+        };
+
+        const clearRoute = () => {
+            selectedRoute = [];
+            if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+            document.getElementById('selectedAreals').innerHTML = '';
+            document.getElementById('routeDistance').textContent = '0';
+            document.getElementById('routeCost').textContent = '0';
+            document.getElementById('routeTime').textContent = '0';
+        };
+
+        const optimizeRoute = () => {
+            if (selectedRoute.length < 2) return;
+            const start = selectedRoute[0];
+            let unvisited = selectedRoute.slice(1);
+            let optimized = [start];
+            let current = start;
+            while (unvisited.length > 0) {
+                let nearest = null;
+                let minDist = Infinity;
+                unvisited.forEach(areal => {
+                    const dist = calculateDistance(current.lat, current.lon, areal.lat, areal.lon);
+                    if (dist < minDist) { minDist = dist; nearest = areal; }
+                });
+                optimized.push(nearest);
+                current = nearest;
+                unvisited = unvisited.filter(a => a !== nearest);
+            }
+            selectedRoute = optimized;
+            updateRouteDisplay();
+        };
+
+        // ===== EXPORTY =====
+        const exportCSV = () => {
+            const headers = ['ID','Nazev','Okres','Kategorie','Vymera_m2','Oploceni_bm','GPS_Lat','GPS_Lon','Link_Mapy'];
+            const rows = arealData.map(r => {
+                const id = `${r.okres}_${r.nazev.replace(/\s+/g,'_')}`;
+                const mapsLink = `https://www.google.com/maps?q=${r.lat},${r.lon}`;
+                return [id, `"${r.nazev}"`, r.okres, r.kategorie || 'Bez kategorie', r.vymera, r.oploceni, r.lat.toFixed(6), r.lon.toFixed(6), mapsLink].join(';');
+            });
+            const csvContent = '\uFEFF' + [headers.join(';'), ...rows].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'vodovody_export.csv';
-            a.click();
+            const link = document.createElement('a');
+            link.href = url; link.download = 'vodovody_export.csv';
+            link.click();
             URL.revokeObjectURL(url);
-        }
+            closeModal('exportModal');
+        };
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
+        const exportGeoJSON = () => {
+            const features = arealData.map(r => ({
+                type:'Feature',
+                properties:{
+                    id: `${r.okres}_${r.nazev.replace(/\s+/g,'_')}`,
+                    nazev: r.nazev,
+                    okres: r.okres,
+                    kategorie: r.kategorie || 'Bez kategorie',
+                    vymera: r.vymera,
+                    oploceni: r.oploceni
+                },
+                geometry:{ type:'Point', coordinates:[r.lon, r.lat] }
+            }));
+            const geojson = { type:'FeatureCollection', features };
+            const blob = new Blob([JSON.stringify(geojson, null, 2)], { type:'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url; link.download = 'vodovody_export.geojson';
+            link.click();
+            URL.revokeObjectURL(url);
+            closeModal('exportModal');
+        };
+
+        const exportKML = () => {
+            let kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+    <name>Vodárenské areály</name>
+`;
+            arealData.forEach(a => {
+                kml += `    <Placemark>
+        <name>${a.nazev}</name>
+        <description>Okres: ${a.okres}, Kategorie: ${a.kategorie || 'Bez'}, Výměra: ${a.vymera} m², Oplocení: ${a.oploceni} bm</description>
+        <Point><coordinates>${a.lon},${a.lat},0</coordinates></Point>
+    </Placemark>
+`;
+            });
+            kml += `</Document>
+</kml>`;
+            const blob = new Blob([kml], { type:'application/vnd.google-earth.kml+xml' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url; link.download = 'vodovody_export.kml';
+            link.click();
+            URL.revokeObjectURL(url);
+            closeModal('exportModal');
+        };
+
+        const copyGoogleMapsLink = () => {
+            const center = map.getCenter();
+            const zoom = map.getZoom();
+            const url = `https://www.google.com/maps/@${center.lat},${center.lng},${zoom}z`;
+            navigator.clipboard.writeText(url);
+            alert('Odkaz zkopírován do schránky!');
+            closeModal('exportModal');
+        };
+
+        // ===== REPORT =====
+        const generateReport = () => {
+            const data = markers.map(m => m.data);
+            const totalArea = data.reduce((s,a) => s + a.vymera, 0);
+            const totalFence = data.reduce((s,a) => s + a.oploceni, 0);
+
+            const report = `REPORT VODÁRENSKÝCH AREÁLŮ
+=====================================
+Datum: ${new Date().toLocaleDateString('cs-CZ')}
+
+CELKOVÝ PŘEHLED
+- Počet areálů: ${data.length}
+- Celková výměra: ${totalArea.toLocaleString()} m²
+- Celková délka oplocení: ${totalFence.toLocaleString()} bm
+
+KATEGORIE
+- Kategorie I: ${data.filter(a => a.kategorie === 'I.').length} areálů
+- Kategorie II: ${data.filter(a => a.kategorie === 'II.').length} areálů
+- Bez kategorie: ${data.filter(a => !a.kategorie).length} areálů
+
+OKRESY
+- České Budějovice: ${data.filter(a => a.okres === 'CB').length} areálů
+- Tábor: ${data.filter(a => a.okres === 'TA').length} areálů
+- Český Krumlov: ${data.filter(a => a.okres === 'CK').length} areálů
+- Prachatice: ${data.filter(a => a.okres === 'PT').length} areálů
+- Písek: ${data.filter(a => a.okres === 'PI').length} areálů
+- Strakonice: ${data.filter(a => a.okres === 'ST').length} areálů
+
+TOP 5 NEJVĚTŠÍCH AREÁLŮ
+${data.sort((a,b) => b.vymera - a.vymera).slice(0,5).map((a,i) => `${i+1}. ${a.nazev} - ${a.vymera.toLocaleString()} m²`).join('\n')}
+`;
+            const blob = new Blob([report], { type:'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url; link.download = 'vodovody_report.txt';
+            link.click();
+            URL.revokeObjectURL(url);
+        };
+
+        // ===== MODALY =====
+        const openExportModal = () => document.getElementById('exportModal').classList.add('active');
+        const openHelpModal = () => document.getElementById('helpModal').classList.add('active');
+        const closeModal = (id) => document.getElementById(id).classList.remove('active');
+
+        // ===== LEGENDA =====
+        const legend = L.control({ position: 'bottomleft' });
+        legend.onAdd = function() {
+            const div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = `
+                <div class="legend-title">🎨 Barevná legenda</div>
+                <div class="legend-item"><div class="legend-color" style="background:#dc2626"></div><span>Kategorie I (vysoká priorita)</span></div>
+                <div class="legend-item"><div class="legend-color" style="background:#f97316"></div><span>Kategorie II (střední priorita)</span></div>
+                <div class="legend-item"><div class="legend-color" style="background:#64748b"></div><span>Bez kategorie</span></div>
+            `;
+            return div;
+        };
+        legend.addTo(map);
+
+        // ===== START - vykresli všechny areály =====
+        createMarkers(arealData);
     </script>
 </body>
 </html>
