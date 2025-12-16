@@ -346,6 +346,53 @@ const Route = {
   }
 };
 </script>
+  <script>
+/* =====================================================
+   MODAL
+===================================================== */
+const Modal = {
+  el: document.getElementById('arealModal'),
+
+  open(data = null) {
+    this.el.classList.remove('hidden');
+    this.el.classList.add('flex');
+
+    if (data) {
+      arealId.value = data.id;
+      arealNazev.value = data.nazev;
+      arealOkres.value = data.okres;
+      arealKategorie.value = data.kategorie;
+      arealVymera.value = data.vymera;
+      arealOploceni.value = data.oploceni;
+      arealLat.value = data.lat;
+      arealLon.value = data.lon;
+      arealPozn.value = data.pozn || '';
+      arealDelete.classList.remove('hidden');
+    } else {
+      this.clear();
+      arealDelete.classList.add('hidden');
+    }
+  },
+
+  close() {
+    this.el.classList.add('hidden');
+    this.el.classList.remove('flex');
+  },
+
+  clear() {
+    arealId.value = '';
+    arealNazev.value = '';
+    arealOkres.value = '';
+    arealKategorie.value = '';
+    arealVymera.value = '';
+    arealOploceni.value = '';
+    arealLat.value = '';
+    arealLon.value = '';
+    arealPozn.value = '';
+  }
+};
+</script>
+
 <script>
 /* =====================================================
    HAVERSINE
@@ -378,25 +425,24 @@ popupContent(a) {
       <div class="font-semibold">${a.nazev}</div>
       <div>Okres: ${a.okres}</div>
       <div>Výměra: ${a.vymera} m²</div>
-      <div>Oplocení: ${a.oploceni} m</div>
 
       <div class="mt-2 flex gap-2">
         <button
           onclick='Route.add(${JSON.stringify(a)})'
           class="bg-blue-600 text-white px-2 py-1 text-xs rounded">
-          Přidat do trasy
+          Trasa
         </button>
 
-        <a
-          class="text-blue-600 underline text-xs self-center"
-          target="_blank"
-          href="https://www.google.com/maps?q=${a.lat},${a.lon}">
-          Navigovat
-        </a>
+        <button
+          onclick='Modal.open(${JSON.stringify(a)})'
+          class="bg-slate-600 text-white px-2 py-1 text-xs rounded">
+          Upravit
+        </button>
       </div>
     </div>
   `;
 }
+
 
 <script>
 /* =====================================================
@@ -427,6 +473,12 @@ const App = {
     Filters.init(this.data);
     this.refresh();
   },
+this.map.on('click', e => {
+  Modal.open({
+    lat: e.latlng.lat.toFixed(6),
+    lon: e.latlng.lng.toFixed(6)
+  });
+});
 
   refresh() {
     const filtered = applyFilters(this.data, Filters.state);
@@ -440,9 +492,83 @@ document.getElementById('routeClear')
 document.addEventListener('DOMContentLoaded', () => App.init());
 </script>
 
+<!-- MODAL AREAL -->
+<div id="arealModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+  <div class="bg-white w-full max-w-md rounded shadow p-4">
+    <div class="font-semibold mb-3">Areál</div>
+
+    <input type="hidden" id="arealId" />
+
+    <div class="space-y-2 text-sm">
+      <input id="arealNazev" class="w-full border px-2 py-1 rounded" placeholder="Název" />
+      <input id="arealOkres" class="w-full border px-2 py-1 rounded" placeholder="Okres" />
+      <input id="arealKategorie" class="w-full border px-2 py-1 rounded" placeholder="Kategorie" />
+      <input id="arealVymera" type="number" class="w-full border px-2 py-1 rounded" placeholder="Výměra m²" />
+      <input id="arealOploceni" type="number" class="w-full border px-2 py-1 rounded" placeholder="Oplocení m" />
+      <input id="arealLat" type="number" class="w-full border px-2 py-1 rounded" placeholder="Lat" />
+      <input id="arealLon" type="number" class="w-full border px-2 py-1 rounded" placeholder="Lon" />
+      <textarea id="arealPozn" class="w-full border px-2 py-1 rounded" placeholder="Poznámka"></textarea>
+    </div>
+
+    <div class="flex justify-between mt-4">
+      <button id="arealDelete" class="text-red-600 text-sm">Smazat</button>
+      <div class="flex gap-2">
+        <button onclick="Modal.close()" class="px-3 py-1 text-sm">Zrušit</button>
+        <button id="arealSave" class="bg-blue-600 text-white px-3 py-1 text-sm rounded">
+          Uložit
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+/* =====================================================
+   CRUD
+===================================================== */
+document.getElementById('arealSave').onclick = () => {
+  const data = createAreal({
+    id: arealId.value || undefined,
+    nazev: arealNazev.value,
+    okres: arealOkres.value,
+    kategorie: arealKategorie.value,
+    vymera: arealVymera.value,
+    oploceni: arealOploceni.value,
+    lat: arealLat.value,
+    lon: arealLon.value,
+    pozn: arealPozn.value
+  });
+
+  if (!data.nazev || !data.lat || !data.lon) {
+    alert('Název a GPS jsou povinné');
+    return;
+  }
+
+  const idx = App.data.findIndex(a => a.id === data.id);
+
+  if (idx >= 0) {
+    App.data[idx] = data;
+  } else {
+    App.data.push(data);
+  }
+
+  Store.save(App.data);
+  Modal.close();
+  App.refresh();
+};
+
+document.getElementById('arealDelete').onclick = () => {
+  if (!confirm('Smazat areál?')) return;
+
+  App.data = App.data.filter(a => a.id !== arealId.value);
+  Store.save(App.data);
+  Modal.close();
+  App.refresh();
+};
+</script>
 
 </body>
 </html>
+
 
 
 
