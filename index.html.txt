@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mapový Dashboard – Vodárenské areály</title>
+
+  <!-- Viewport -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- PWA placeholder -->
+  <link rel="manifest" href="manifest.json" />
+
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+</head>
+
+<body class="h-full flex flex-col">
+
+<!-- ===================== -->
+<!-- HEADER -->
+<!-- ===================== -->
+<header class="bg-slate-800 text-white px-4 py-3 flex items-center justify-between">
+  <div class="font-semibold text-sm sm:text-base">
+    Mapový Dashboard – Vodárenské areály
+  </div>
+  <div id="statusBar" class="text-xs text-slate-300">
+    Načítám data…
+  </div>
+</header>
+
+<!-- ===================== -->
+<!-- MAIN LAYOUT -->
+<!-- ===================== -->
+<div class="flex flex-1 overflow-hidden">
+
+  <!-- SIDE PANEL -->
+  <aside class="hidden sm:flex w-80 bg-slate-100 border-r border-slate-200 flex-col">
+    <div class="p-4 border-b font-semibold">
+      Ovládání
+    </div>
+
+    <div class="p-4 text-sm text-slate-600">
+      (Filtry, statistiky, trasy – přijdou v další fázi)
+    </div>
+  </aside>
+
+  <!-- MAP -->
+  <main class="flex-1 relative">
+    <div id="map"></div>
+  </main>
+
+</div>
+
+<!-- ===================== -->
+<!-- SCRIPTS -->
+<!-- ===================== -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+/* =====================================================
+   CONFIG
+===================================================== */
+const CONFIG = {
+  STORAGE_KEY: 'arealy_v1',
+  MAP_CENTER: [49.8, 15.5],
+  MAP_ZOOM: 7
+};
+
+/* =====================================================
+   STATUS BAR
+===================================================== */
+const StatusBar = {
+  el: document.getElementById('statusBar'),
+
+  set(text) {
+    this.el.textContent = text;
+  },
+
+  setSaved() {
+    this.set('Data uložena v LocalStorage');
+  }
+};
+
+/* =====================================================
+   STORE (LocalStorage)
+===================================================== */
+const Store = {
+  load() {
+    try {
+      const raw = localStorage.getItem(CONFIG.STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      console.error('Chyba při načítání dat', e);
+      return [];
+    }
+  },
+
+  save(data) {
+    localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(data));
+    StatusBar.setSaved();
+  }
+};
+
+/* =====================================================
+   DATA MODEL
+===================================================== */
+function createAreal(data) {
+  return {
+    id: data.id || crypto.randomUUID(),
+    nazev: data.nazev,
+    okres: data.okres,
+    typ: data.typ || '',
+    kategorie: data.kategorie || '',
+    vymera: Number(data.vymera) || 0,
+    oploceni: Number(data.oploceni) || 0,
+    lat: Number(data.lat),
+    lon: Number(data.lon),
+    pozn: data.pozn || '',
+    created_at: data.created_at || new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+}
+
+/* =====================================================
+   MAP
+===================================================== */
+const MapApp = {
+  map: null,
+  markers: [],
+
+  init() {
+    this.map = L.map('map').setView(CONFIG.MAP_CENTER, CONFIG.MAP_ZOOM);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(this.map);
+  },
+
+  clear() {
+    this.markers.forEach(m => this.map.removeLayer(m));
+    this.markers = [];
+  },
+
+  render(arealy) {
+    this.clear();
+
+    arealy.forEach(a => {
+      if (!a.lat || !a.lon) return;
+
+      const marker = L.marker([a.lat, a.lon]).addTo(this.map);
+      marker.bindPopup(this.popupContent(a));
+      this.markers.push(marker);
+    });
+
+    StatusBar.set(`Zobrazeno ${arealy.length} areálů`);
+  },
+
+  popupContent(a) {
+    return `
+      <div class="text-sm">
+        <div class="font-semibold">${a.nazev}</div>
+        <div>Okres: ${a.okres}</div>
+        <div>Výměra: ${a.vymera} m²</div>
+        <div>Oplocení: ${a.oploceni} m</div>
+        <a
+          class="text-blue-600 underline mt-1 inline-block"
+          target="_blank"
+          href="https://www.google.com/maps?q=${a.lat},${a.lon}">
+          Navigovat
+        </a>
+      </div>
+    `;
+  }
+};
+
+/* =====================================================
+   BOOTSTRAP
+===================================================== */
+document.addEventListener('DOMContentLoaded', () => {
+
+  MapApp.init();
+
+  let data = Store.load();
+
+  // pokud není nic v LocalStorage, vložíme DEMO záznam
+  if (data.length === 0) {
+    data = [
+      createAreal({
+        nazev: 'VDJ Demo',
+        okres: 'CB',
+        kategorie: 'I.',
+        vymera: 3300,
+        oploceni: 290,
+        lat: 49.305131,
+        lon: 14.166126
+      })
+    ];
+    Store.save(data);
+  }
+
+  MapApp.render(data);
+});
+</script>
+
+</body>
+</html>
