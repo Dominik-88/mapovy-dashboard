@@ -1,129 +1,127 @@
-<!DOCTYPE html>
-<html lang="cs">
-<head>
+<html lang="cs"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JVS – Interaktivní plánovací a provozní systém</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <script type="module">
-    // Importy pro Firebase/Firestore
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, onSnapshot, collection, query, writeBatch, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-    
-    // Globální proměnné pro Firebase
-    window.initializeApp = initializeApp;
-    window.getAuth = getAuth;
-    window.signInAnonymously = signInAnonymously;
-    window.signInWithCustomToken = signInWithCustomToken;
-    window.onAuthStateChanged = onAuthStateChanged;
-    window.getFirestore = getFirestore;
-    window.doc = doc;
-    window.setDoc = setDoc;
-    window.onSnapshot = onSnapshot;
-    window.collection = collection;
-    window.query = query;
-    window.writeBatch = writeBatch;
-    window.setLogLevel = setLogLevel;
+    // Importy pro Firebase/Firestore
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, onSnapshot, collection, query, writeBatch, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+     
+    // Globální proměnné pro Firebase
+    window.initializeApp = initializeApp;
+    window.getAuth = getAuth;
+    window.signInAnonymously = signInAnonymously;
+    window.signInWithCustomToken = signInWithCustomToken;
+    window.onAuthStateChanged = onAuthStateChanged;
+    window.getFirestore = getFirestore;
+    window.doc = doc;
+    window.setDoc = setDoc;
+    window.onSnapshot = onSnapshot;
+    window.collection = collection;
+    window.query = query;
+    window.writeBatch = writeBatch;
+    window.setLogLevel = setLogLevel;
 </script>
 <style>
 /* --- 3. Barevné schéma: Tmavá se Zelenou (Default) / Červenou (Alternativa) --- */
 :root {
-    --bg: #0b1220;
-    --panel: #0f172a;
-    --accent-primary: #16a34a; /* Zelená akcent (Good/Go) */
-    --accent-secondary: #dc2626; /* Červená akcent (Danger/Stop) */
-    --text: #e5e7eb;
-    --muted: #94a3b8;
-    --completed: #34d399; /* Světle zelená pro dokončené úkoly */
+    --bg: #0b1220;
+    --panel: #0f172a;
+    --accent-primary: #16a34a; /* Zelená akcent (Good/Go) */
+    --accent-secondary: #dc2626; /* Červená akcent (Danger/Stop) */
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+    --completed: #34d399; /* Světle zelená pro dokončené úkoly */
 }
-
+ 
 /* Tmavý mód s Červeným akcentem */
 body.theme-red {
-    --accent-primary: #dc2626;
-    --accent-secondary: #16a34a;
-    --completed: #f87171;
+    --accent-primary: #dc2626;
+    --accent-secondary: #16a34a;
+    --completed: #f87171;
 }
-
+ 
 /* Základní styly */
 *{box-sizing:border-box}
 body{margin:0;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);transition:background-color 0.3s}
 #map{height:100vh}
-
+ 
 /* --- 2. Sada nástrojů na levé straně: Vylepšená Viditelnost --- */
 .top{
-    position:fixed;top:0;left:0;right:0;z-index:1000;
-    background:linear-gradient(135deg, var(--panel), #080f1e);
-    border-bottom:2px solid var(--accent-primary);
-    color:#ecfdf5;padding:10px 14px;
-    display:flex;justify-content:center;align-items:center;text-align:center;
-    transition:border-color 0.3s;
+    position:fixed;top:0;left:0;right:0;z-index:1000;
+    background:linear-gradient(135deg, var(--panel), #080f1e);
+    border-bottom:2px solid var(--accent-primary);
+    color:#ecfdf5;padding:10px 14px;
+    display:flex;justify-content:center;align-items:center;text-align:center;
+    transition:border-color 0.3s;
 }
 .top h1{margin:0;font-size:20px;letter-spacing:2px}
 .top span{display:block;font-size:12px;opacity:.8}
-
+ 
 .tools-left{
-    position:fixed;
-    top:70px;
-    left:10px;z-index:1000;
-    background:var(--panel);border-radius:12px;
-    box-shadow:0 10px 20px rgba(0,0,0,.5);
-    padding:8px;width:56px; /* Zmenšená šířka */
-    display:flex;flex-direction:column;gap:8px; /* Menší mezery */
+    position:fixed;
+    top:70px;
+    left:10px;z-index:1000;
+    background:var(--panel);border-radius:12px;
+    box-shadow:0 10px 20px rgba(0,0,0,.5);
+    padding:8px;width:56px; /* Zmenšená šířka */
+    display:flex;flex-direction:column;gap:8px; /* Menší mezery */
 }
 .tool-btn{
-    background:#020617;
-    border:1px solid var(--accent-primary);
-    color:var(--accent-primary);
-    border-radius:8px; /* Jemnější rohy */
-    height:40px; /* Menší výška */
-    cursor:pointer;font-size:16px; /* Menší font pro lepší centrování */
-    transition:background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    background:#020617;
+    border:1px solid var(--accent-primary);
+    color:var(--accent-primary);
+    border-radius:8px; /* Jemnější rohy */
+    height:40px; /* Menší výška */
+    cursor:pointer;font-size:16px; /* Menší font pro lepší centrování */
+    transition:background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 .tool-btn:hover{
-    background-color:var(--accent-primary);
-    color:var(--text);
-    box-shadow:0 0 10px rgba(var(--accent-primary), 0.5);
+    background-color:var(--accent-primary);
+    color:var(--text);
+    box-shadow:0 0 10px rgba(var(--accent-primary), 0.5);
 }
-
+ 
 /* --- 1. Kompaktní a zavírací filtr panel --- */
 .panel{
-    position:fixed;
-    top:70px;right:10px;z-index:1000;
-    width:340px;
-    max-height:calc(100vh - 90px);
-    background:var(--panel);
-    border-radius:14px;
-    box-shadow:0 20px 40px rgba(0,0,0,.5);
-    overflow:auto;padding:14px;
-    transform:translateX(110%);
-    transition:transform 0.3s ease-out;
+    position:fixed;
+    top:70px;right:10px;z-index:1000;
+    width:340px;
+    max-height:calc(100vh - 90px);
+    background:var(--panel);
+    border-radius:14px;
+    box-shadow:0 20px 40px rgba(0,0,0,.5);
+    overflow:auto;padding:14px;
+    transform:translateX(110%);
+    transition:transform 0.3s ease-out;
 }
 .panel.open{
-    transform:translateX(0);
+    transform:translateX(0);
 }
 .panel-close-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: none;
-    border: none;
-    color: var(--muted);
-    font-size: 20px;
-    cursor: pointer;
-    line-height: 1;
-    transition: color 0.2s;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s;
 }
 .panel-close-btn:hover {
-    color: var(--accent-secondary);
+    color: var(--accent-secondary);
 }
-
+ 
 .section{border-bottom:1px solid #1f2937;margin-bottom:14px;padding-bottom:14px}
 .section:last-child{border:none;margin:0}
 .section h2{margin:0 0 8px;font-size:13px;color:var(--accent-primary);transition:color 0.3s;}
@@ -136,204 +134,1144 @@ button{cursor:pointer}
 .card{background:#020617;border:1px solid #1f2937;border-radius:12px;padding:10px;text-align:center}
 .card .v{font-size:18px;font-weight:900;color:var(--accent-primary);transition:color 0.3s;}
 .card .l{font-size:10px;color:var(--muted)}
-
+ 
 /* STYL PRO DOKONČENÉ/NEDOKONČENÉ MARKERY */
 .route-active{
-    outline:3px solid var(--accent-primary);
-    box-shadow:0 0 8px var(--accent-primary);
-    transition:outline 0.3s, box-shadow 0.3s;
+    outline:3px solid var(--accent-primary);
+    box-shadow:0 0 8px var(--accent-primary);
+    transition:outline 0.3s, box-shadow 0.3s;
 }
 .completed-area {
-    color: var(--completed) !important;
-    fillColor: var(--completed) !important;
-    outline: 3px solid var(--completed) !important;
-    box-shadow: 0 0 8px var(--completed) !important;
+    color: var(--completed) !important;
+    fillColor: var(--completed) !important;
+    outline: 3px solid var(--completed) !important;
+    box-shadow: 0 0 8px var(--completed) !important;
 }
-
+ 
 /* Custom Modal for AI Output */
 .ai-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    z-index: 2000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 .ai-modal-content {
-    background: var(--panel);
-    border-radius: 16px;
-    padding: 20px;
-    width: 90%;
-    max-width: 700px;
-    max-height: 80vh;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
-    position: relative;
-    color: var(--text);
-    overflow-y: auto;
+    background: var(--panel);
+    border-radius: 16px;
+    padding: 20px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 80vh;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+    position: relative;
+    color: var(--text);
+    overflow-y: auto;
 }
 .ai-modal-body {
-    white-space: pre-wrap;
-    font-family: monospace;
-    font-size: 13px;
-    line-height: 1.5;
-    background: #020617;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #1f2937;
-    overflow-x: auto;
+    white-space: pre-wrap;
+    font-family: monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    background: #020617;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #1f2937;
+    overflow-x: auto;
 }
 /* Spinner */
 .spinner {
-    border: 4px solid rgba(255, 255, 255, 0.1);
-    border-top: 4px solid var(--accent-primary);
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    animation: spin 1s linear infinite;
-    margin: 20px auto;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-top: 4px solid var(--accent-primary);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
 }
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
-
+ 
 /* --- Vylepšení pro Leaflet.Draw controls --- */
 .leaflet-draw-toolbar a, .leaflet-draw-actions a {
-    color: var(--text) !important;
-    background: var(--panel) !important;
-    border: 1px solid #1f2937 !important;
-    border-radius: 4px !important;
-    transition: background-color 0.2s, border-color 0.2s;
+    color: var(--text) !important;
+    background: var(--panel) !important;
+    border: 1px solid #1f2937 !important;
+    border-radius: 4px !important;
+    transition: background-color 0.2s, border-color 0.2s;
 }
 .leaflet-draw-toolbar a:hover, .leaflet-draw-actions a:hover {
-    background: var(--accent-primary) !important;
-    color: var(--text) !important;
-    border-color: var(--accent-primary) !important;
+    background: var(--accent-primary) !important;
+    color: var(--text) !important;
+    border-color: var(--accent-primary) !important;
 }
 </style>
 </head>
 <body id="appBody">
 <div class="top">
-    <div>
-        <h1><i class="fas fa-map-marked-alt"></i> JVS - Plánovací a Provozní Systém</h1>
-        <span>Dominik Schmied | Verze 2.0 (Provozní Deník)</span>
-    </div>
+    <div>
+        <img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAkACQAAD/4QD2RXhpZgAATU0AKgAAAAgABwEOAAIAAAALAAAAYgESAAMA
+AAABAAEAAAEaAAUAAAABAAAAbgEbAAUAAAABAAAAdgEoAAMAAAABAAIAAAEyAAIAAAAUAAAAfodp
+AAQAAAABAAAAkgAAAABTY3JlZW5zaG90AAAAAACQAAAAAQAAAJAAAAABMjAyNToxMjoxNyAwMDoy
+ODowNAAABJADAAIAAAAUAAAAyJKGAAcAAAASAAAA3KACAAQAAAABAAAC7qADAAQAAAABAAADSAAA
+AAAyMDI1OjEyOjE3IDAwOjI4OjA0AEFTQ0lJAAAAU2NyZWVuc2hvdP/tADhQaG90b3Nob3AgMy4w
+ADhCSU0EBAAAAAAAADhCSU0EJQAAAAAAENQdjNmPALIE6YAJmOz4Qn7/4gIoSUNDX1BST0ZJTEUA
+AQEAAAIYYXBwbAQAAABtbnRyUkdCIFhZWiAH5gABAAEAAAAAAABhY3NwQVBQTAAAAABBUFBMAAAA
+AAAAAAAAAAAAAAAAAAAA9tYAAQAAAADTLWFwcGwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAApkZXNjAAAA/AAAADBjcHJ0AAABLAAAAFB3dHB0AAABfAAAABRy
+WFlaAAABkAAAABRnWFlaAAABpAAAABRiWFlaAAABuAAAABRyVFJDAAABzAAAACBjaGFkAAAB7AAA
+ACxiVFJDAAABzAAAACBnVFJDAAABzAAAACBtbHVjAAAAAAAAAAEAAAAMZW5VUwAAABQAAAAcAEQA
+aQBzAHAAbABhAHkAIABQADNtbHVjAAAAAAAAAAEAAAAMZW5VUwAAADQAAAAcAEMAbwBwAHkAcgBp
+AGcAaAB0ACAAQQBwAHAAbABlACAASQBuAGMALgAsACAAMgAwADIAMlhZWiAAAAAAAAD21QABAAAA
+ANMsWFlaIAAAAAAAAIPfAAA9v////7tYWVogAAAAAAAASr8AALE3AAAKuVhZWiAAAAAAAAAoOAAA
+EQsAAMi5cGFyYQAAAAAAAwAAAAJmZgAA8qcAAA1ZAAAT0AAACltzZjMyAAAAAAABDEIAAAXe///z
+JgAAB5MAAP2Q///7ov///aMAAAPcAADAbv/AABEIA0gC7gMBIgACEQEDEQH/xAAfAAABBQEBAQEB
+AQAAAAAAAAAAAQIDBAUGBwgJCgv/xAC1EAACAQMDAgQDBQUEBAAAAX0BAgMABBEFEiExQQYTUWEH
+InEUMoGRoQgjQrHBFVLR8CQzYnKCCQoWFxgZGiUmJygpKjQ1Njc4OTpDREVGR0hJSlNUVVZXWFla
+Y2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbH
+yMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T19vf4+fr/xAAfAQADAQEBAQEBAQEBAAAAAAAAAQID
+BAUGBwgJCgv/xAC1EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQpGhscEJ
+IzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1
+dnd4eXqCg4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY
+2dri4+Tl5ufo6ery8/T19vf4+fr/2wBDAAICAgICAgMCAgMFAwMDBQYFBQUFBggGBgYGBggKCAgI
+CAgICgoKCgoKCgoMDAwMDAwODg4ODg8PDw8PDw8PDw//2wBDAQICAgQEBAcEBAcQCwkLEBAQEBAQ
+EBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/3QAEAC//2gAMAwEA
+AhEDEQA/AP38ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigA
+ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACi
+iigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKK
+KACiiigAooooAKKKKACiiigAooooAKKKKAP/0P38ooooAKKKKACiiigAooooAKKKKACiiigAoooo
+AKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigA
+ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACi
+iigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/0f38ooooAKKK
+KACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAoooo
+AKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigA
+ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACi
+iigAooooAKKKKAP/0v38ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAPmzx/+17+zv8L/
+ABdf+BPHXiz+zNc0zyvtFv8AYL6bZ50STJ88Nu8ZyjqeGOM4POQOPP7fX7JY6+Ov/KZqf/yLX5k/
+tXeDrfxb+2l4v0+cAif+zc5Hpp1qK9p0z9iLw5eWsU0kaZdFb7vqM+lfq64QyqOEo1qlSfNKMW9Y
+2u0m/snytTOcQqsoKKsm11/zPstf2/f2SWO1fHeT/wBgvU//AJFpzft9fslr97x1/wCUzU//AJFr
+5A/4YX8LxncqR5/3P/rUo/Yb8MydUj5/2f8A61cC4ayy38SX3r/Izq55iYu3Kvx/zPrsft+/skN0
+8d/+UvU//kWl/wCG/P2Sf+h7/wDKXqf/AMi18gS/sLeGIcFEj/75P+FKv7DHhkjJSP8A74/+tS/1
+ayy1/aS+9f5GizrEfyr8f8z69/4b9/ZI/wCh7/8AKXqf/wAi0v8Aw37+yT/0Pf8A5S9T/wDkWvkL
+/hhbwv8A3I/++P8A61H/AAwv4X/uR/8AfP8A9ao/1by3/n5L71/kV/bNe3wr8f8AM+vP+G/f2Sf+
+h7/8pep//ItH/Dfv7JH/AEPf/lL1P/5Fr5CP7C/hj+5H/wB8/wD1qaf2F/DPaOP/AL5/+tWq4ayv
+/n5L71/kNZxX/lX4/wCZ9gD9v39kk9PHf/lL1P8A+RaD+35+ySBk+O//ACl6n/8AItfHn/DDPhpf
++Wcf/fH/ANapl/Ya8LsuGSP/AL4/+tTfDOV/8/Jfev8A5Ebziv8Ayr8f8z67H/BQD9kc9PHn/lL1
+P/5Fp7ft9/slIu9vHeB/2C9T/wDkWvkFf2EvC3XZH/3z/wDWp0v7DPhdk2bI/wDvn/61SuG8r/5+
+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
+3NSlCw5FRbGDYCnFdkbWNEyVOTUrcLihFxTmGaiRlJkNPVTQF9alxis1ElIToKibk085pMZqpbDE
+HSmnrUmKZg56UIBw4qOpscVFg+lD3ExjHANQw7txyas7c9RRsx0Fap6DgMyu7FNnRXQoRkGpNhzn
+FDqT2qU7MVWN1Y858QeAfD2uIVvLJJs9c1S034YeC7FQE0uNWHtXqBQ+hqPySecH8q7ljJ8vLc8+
+ngouWqMWz8O6PZ4FrbKn0rbjgWMYQYFSqhHanDd6GuOvWk1udccLFbDeBTgM04rSFSOlcUKkr6m1
+rDGWoirE1YwTwRSMpBwBXZGRSmNUY60/K+lJtPpTSGJ6GlcNxchulTjpVfay9AasL0FK4nGwtFFF
+IQUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFAH//R/fyiiigAooooAKKKKACiiigAoooo
+AKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigA
+ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACi
+iigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//S
+/fyiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAoooo
+AKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigA
+ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACi
+iigAooooAKKKKACiiigAooooA//T/fyiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKK
+KACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAoooo
+AKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigA
+ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//Z" alt="JVS Logo" style="height: 40px; margin-right: 10px;">
+        <h1>• JVS (e-book) •</h1>
+        <span>• by •<h1>• Dominik Schmied •</h1></span>
+    </div>
 </div>
-<div id="map"></div>
-
+<div id="map" class="leaflet-container leaflet-touch leaflet-retina leaflet-fade-anim leaflet-grab leaflet-touch-drag leaflet-touch-zoom" tabindex="0" style="position: relative;"><div class="leaflet-pane leaflet-map-pane" style="transform: translate3d(13px, 38px, 0px);"><div class="leaflet-pane leaflet-tile-pane"><div class="leaflet-layer " style="z-index: 1; opacity: 1;"><div class="leaflet-tile-container leaflet-zoom-animated" style="z-index: 20; transform: translate3d(0px, 0px, 0px) scale(1);"><img alt="" src="https://b.tile.openstreetmap.org/9/276/175.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(72px, 174px, 0px); opacity: 1;"><img alt="" src="https://a.tile.openstreetmap.org/9/276/174.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(72px, -82px, 0px); opacity: 1;"><img alt="" src="https://a.tile.openstreetmap.org/9/275/175.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-184px, 174px, 0px); opacity: 1;"><img alt="" src="https://c.tile.openstreetmap.org/9/277/175.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(328px, 174px, 0px); opacity: 1;"><img alt="" src="https://c.tile.openstreetmap.org/9/276/176.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(72px, 430px, 0px); opacity: 1;"><img alt="" src="https://c.tile.openstreetmap.org/9/275/174.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-184px, -82px, 0px); opacity: 1;"><img alt="" src="https://b.tile.openstreetmap.org/9/277/174.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(328px, -82px, 0px); opacity: 1;"><img alt="" src="https://b.tile.openstreetmap.org/9/275/176.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-184px, 430px, 0px); opacity: 1;"><img alt="" src="https://a.tile.openstreetmap.org/9/277/176.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(328px, 430px, 0px); opacity: 1;"></div></div></div><div class="leaflet-pane leaflet-overlay-pane"><canvas class="leaflet-zoom-animated" width="936" height="1592" style="transform: translate3d(-52px, -104px, 0px); width: 468px; height: 796px;"></canvas></div><div class="leaflet-pane leaflet-shadow-pane"></div><div class="leaflet-pane leaflet-marker-pane"></div><div class="leaflet-pane leaflet-tooltip-pane"></div><div class="leaflet-pane leaflet-popup-pane"></div><div class="leaflet-proxy leaflet-zoom-animated" style="transform: translate3d(70766px, 44919.5px, 0px) scale(256);"></div></div><div class="leaflet-control-container"><div class="leaflet-top leaflet-left"><div class="leaflet-control-zoom leaflet-bar leaflet-control"><a class="leaflet-control-zoom-in" href="#" title="Zoom in" role="button" aria-label="Zoom in" aria-disabled="false"><span aria-hidden="true">+</span></a><a class="leaflet-control-zoom-out" href="#" title="Zoom out" role="button" aria-label="Zoom out" aria-disabled="false"><span aria-hidden="true">−</span></a></div><div class="leaflet-draw leaflet-control" style="display: none;"><div class="leaflet-draw-section"><div class="leaflet-draw-toolbar leaflet-bar leaflet-draw-toolbar-top"><a class="leaflet-draw-draw-polyline" href="#" title="Draw a polyline"><span class="sr-only">Draw a polyline</span></a><a class="leaflet-draw-draw-polygon" href="#" title="Draw a polygon"><span class="sr-only">Draw a polygon</span></a><a class="leaflet-draw-draw-rectangle" href="#" title="Draw a rectangle"><span class="sr-only">Draw a rectangle</span></a><a class="leaflet-draw-draw-circle" href="#" title="Draw a circle"><span class="sr-only">Draw a circle</span></a><a class="leaflet-draw-draw-marker" href="#" title="Draw a marker"><span class="sr-only">Draw a marker</span></a></div><ul class="leaflet-draw-actions"></ul></div><div class="leaflet-draw-section"><div class="leaflet-draw-toolbar leaflet-bar"><a class="leaflet-draw-edit-edit leaflet-disabled" href="#" title="No layers to edit"><span class="sr-only">Edit layers</span></a><a class="leaflet-draw-edit-remove leaflet-disabled" href="#" title="No layers to delete"><span class="sr-only">Delete layers</span></a></div><ul class="leaflet-draw-actions"></ul></div></div></div><div class="leaflet-top leaflet-right"></div><div class="leaflet-bottom leaflet-left"></div><div class="leaflet-bottom leaflet-right"><div class="leaflet-control-attribution leaflet-control"><a href="https://leafletjs.com" title="A JavaScript library for interactive maps"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8" class="leaflet-attribution-flag"><path fill="#4C7BE1" d="M0 0h12v4H0z"></path><path fill="#FFD500" d="M0 4h12v3H0z"></path><path fill="#E0BC00" d="M0 7h12v1H0z"></path></svg> Leaflet</a> <span aria-hidden="true">|</span> © OpenStreetMap contributors</div></div></div></div>
+ 
 <!-- Levá sada nástrojů -->
 <div class="tools-left">
-    <button class="tool-btn" onclick="togglePanel()" title="Otevřít/Zavřít Panel Filtrů"><i class="fas fa-filter"></i></button>
-    <button class="tool-btn" onclick="startRoute()" title="Začít Novou Trasovací Sekvenci"><i class="fas fa-route"></i></button>
-    <button class="tool-btn" onclick="clearRoute()" title="Vyčistit Naplánovanou Trasu a Markery"><i class="fas fa-trash-alt"></i></button>
-    <button class="tool-btn" onclick="toggleHDMap()" title="Přepnout Mapové Podklady (HD/OSM)"><i class="fas fa-satellite-dish"></i></button>
-    <button class="tool-btn" onclick="toggleTheme()" title="Změnit Akcentní Barvu (Zelená/Červená)"><i class="fas fa-palette"></i></button>
-    <button class="tool-btn" onclick="geoLocate()" title="Najít Mojí Polohu"><i class="fas fa-location-crosshairs"></i></button>
-    <button class="tool-btn" id="draw-tool-btn" title="Nástroje pro Kreslení a Měření Vzdálenosti"><i class="fas fa-pencil-ruler"></i></button>
-    <button class="tool-btn" onclick="generateRoutePlan()" title="Generovat Plán Inspekce pomocí AI"><i class="fas fa-magic"></i></button> 
+    <button class="tool-btn" onclick="togglePanel()" title="Otevřít/Zavřít Panel Filtrů"><i class="fas fa-filter"></i></button>
+    <button class="tool-btn" onclick="startRoute()" title="Začít Novou Trasovací Sekvenci"><i class="fas fa-route"></i></button>
+    <button class="tool-btn" onclick="clearRoute()" title="Vyčistit Naplánovanou Trasu a Markery"><i class="fas fa-trash-alt"></i></button>
+    <button class="tool-btn" onclick="toggleHDMap()" title="Přepnout Mapové Podklady (HD/OSM)"><i class="fas fa-satellite-dish"></i></button>
+    <button class="tool-btn" onclick="toggleTheme()" title="Změnit Akcentní Barvu (Zelená/Červená)"><i class="fas fa-palette"></i></button>
+    <button class="tool-btn" onclick="geoLocate()" title="Najít Mojí Polohu"><i class="fas fa-location-crosshairs"></i></button>
+    <button class="tool-btn" id="draw-tool-btn" title="Nástroje pro Kreslení a Měření Vzdálenosti"><i class="fas fa-pencil-ruler"></i></button>
+    <button class="tool-btn" onclick="generateRoutePlan()" title="Generovat Plán Inspekce pomocí AI"><i class="fas fa-magic"></i></button> 
 </div>
-
+ 
 <!-- Pravý ovládací panel (Filtr a Statistiky) -->
 <div class="panel" id="filterPanel">
-    <button class="panel-close-btn" onclick="togglePanel()"><i class="fas fa-times"></i></button>
-    <div class="section">
-        <h2>🔍 Filtr Objektů</h2>
-        <label for="fName">Název</label>
-        <input id="fName" oninput="applyFilters()" placeholder="Zadejte název vodojemu/ÚV">
-        <label for="fOkres">Okres</label>
-        <select id="fOkres" onchange="applyFilters()">
-            <option value="all">Všechny</option>
-        </select>
-    </div>
-    
-    <!-- NOVÁ SEKCE: SOUHRN TRAVNATÝCH PLOCH -->
-    <div class="section">
-        <h2>🌳 Údržba Travnatých Plocha</h2>
-        <div id="grass-loading-status" class="text-center text-sm text-yellow-400">Načítání dat z databáze...</div>
-        <div class="grid" style="grid-template-columns: 1fr;">
-            <div class="card"><div class="v" id="stGrassTotal">0 m²</div><div class="l">Celková plocha (m²)</div></div>
-            <div class="card"><div class="v" id="stGrassRemaining">0 m²</div><div class="l">Zbývá dokončit (m²)</div></div>
-        </div>
-    </div>
-    
-    <div class="section">
-        <h2>📊 Statistiky a Trasa</h2>
-        <div class="grid">
-            <div class="card"><div class="v" id="stObj">0</div><div class="l">Objektů (zobraz.)</div></div>
-            <div class="card"><div class="v" id="stKm">0.0</div><div class="l">km v Trase</div></div>
-        </div>
-        <p class="text-xs mt-3 text-center text-gray-500">Klikněte na bod na mapě a zvolte "Přidat do Trasy" nebo "Start Trasy".</p>
-    </div>
+    <button class="panel-close-btn" onclick="togglePanel()"><i class="fas fa-times"></i></button>
+    <div class="section">
+        <h2>🔍 Filtr Objektů</h2>
+        <label for="fName">Název</label>
+        <input id="fName" oninput="applyFilters()" placeholder="Zadejte název vodojemu/ÚV">
+        <label for="fOkres">Okres</label>
+        <select id="fOkres" onchange="applyFilters()">
+            <option value="all">Všechny</option>
+        <option value="PI">PI</option><option value="ST">ST</option><option value="CB">CB</option><option value="PT">PT</option><option value="CK">CK</option><option value="TA">TA</option></select>
+    </div>
+     
+    <!-- NOVÁ SEKCE: SOUHRN TRAVNATÝCH PLOCH -->
+    <div class="section">
+        <h2>🌳 Údržba Travnatých Plocha</h2>
+        <div id="grass-loading-status" class="text-center text-sm text-yellow-400">Upozornění: Databáze není připojena.</div>
+        <div class="grid" style="grid-template-columns: 1fr;">
+            <div class="card"><div class="v" id="stGrassTotal" style="color: var(--accent-primary);">498 093 m²</div><div class="l">Celková plocha (m²)</div></div>
+            <div class="card"><div class="v" id="stGrassRemaining" style="color: var(--accent-secondary);">498 093 m²</div><div class="l">Zbývá dokončit (m²)</div></div>
+        </div>
+    </div>
+     
+    <div class="section">
+        <h2>📊 Statistiky a Trasa</h2>
+        <div class="grid">
+            <div class="card"><div class="v" id="stObj">41</div><div class="l">Objektů (zobraz.)</div></div>
+            <div class="card"><div class="v" id="stKm">0.0</div><div class="l">km v Trase</div></div>
+        </div>
+        <p class="text-xs mt-3 text-center text-gray-500">Klikněte na bod na mapě a zvolte "Přidat do Trasy" nebo "Start Trasy".</p>
+    </div>
+     
+    <!-- NOVÁ SEKCE: Informace o počasí -->
+    <div class="section">
+        <h2>☁️ Aktuální počasí v regionech</h2>
+        <ul class="text-xs">
+            <li>České Budějovice: -1°C, převážně zataženo</li>
+            <li>Český Krumlov: -2°C, částečně slunečno</li>
+            <li>Jindřichův Hradec: 13°C (max), déšť končí, zataženo</li>
+            <li>Prachatice: 7°C / 0°C, částečně zataženo</li>
+            <li>Tábor: -2°C, převážně zataženo</li>
+        </ul>
+    </div>
 </div>
-
+ 
 <!-- Custom Modal pro zobrazení LLM výstupu -->
 <div id="aiModal" class="ai-modal-overlay" style="display:none;">
-    <div class="ai-modal-content">
-        <button class="panel-close-btn" onclick="closeModal()"><i class="fas fa-times"></i></button>
-        <h2 id="aiModalTitle" class="text-xl font-bold mb-4"></h2>
-        <div id="aiModalBody" class="ai-modal-body">
-            <!-- Content and spinner go here -->
-        </div>
-        <div id="aiModalSources" class="text-xs text-muted mt-4 border-t border-gray-700 pt-2" style="display: none;">
-            <!-- Sources go here if using search grounding -->
-        </div>
-    </div>
+    <div class="ai-modal-content">
+        <button class="panel-close-btn" onclick="closeModal()"><i class="fas fa-times"></i></button>
+        <h2 id="aiModalTitle" class="text-xl font-bold mb-4"></h2>
+        <div id="aiModalBody" class="ai-modal-body">
+            <!-- Content and spinner go here -->
+        </div>
+        <div id="aiModalSources" class="text-xs text-muted mt-4 border-t border-gray-700 pt-2" style="display: none;">
+            <!-- Sources go here if using search grounding -->
+        </div>
+    </div>
 </div>
-
+ 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 <script>
 // --- GLOBÁLNÍ DATA A PROMĚNNÉ ---
-
+ 
 let objects = [
-    {n:"VDJ Amerika II",o:"PI",lat:49.305131,lon:14.166126,grass_m2:3303},
-    {n:"VDJ Drahonice",o:"ST",lat:49.202902,lon:14.063713,grass_m2:5953},
-    {n:"VDJ Vodňany",o:"CB",lat:49.164550,lon:14.177836,grass_m2:1594},
-    {n:"VDJ Hlavatce",o:"PT",lat:49.063584,lon:14.267751,grass_m2:7968},
-    {n:"VDJ Šibeniční vrch I",o:"PT",lat:49.025083,lon:13.994111,grass_m2:1835},
-    {n:"ÚV Husinecka přehrada",o:"PT",lat:49.034362,lon:13.996830,grass_m2:4908},
-    {n:"VDJ Šibeniční vrch II",o:"PI",lat:49.026710,lon:13.994001,grass_m2:3206},
-    {n:"VDJ Zálužany",o:"PT",lat:49.552857,lon:14.083381,grass_m2:2350},
-    {n:"VDJ Ptáčník",o:"CB",lat:49.066147,lon:14.186844,grass_m2:1070},
-    {n:"VDJ Zdoba",o:"CK",lat:49.212422,lon:14.338095,grass_m2:15523},
-    {n:"VDJ Domoradice",o:"CK",lat:48.829651,lon:14.326564,grass_m2:4148},
-    {n:"VDJ Horní Brána",o:"CK",lat:48.807970,lon:14.329352,grass_m2:1665},
-    {n:"VDJ Netřebice",o:"CK",lat:48.783277,lon:14.456447,grass_m2:877},
-    {n:"VDJ Plešivec",o:"CK",lat:48.802231,lon:14.304933,grass_m2:975},
-    {n:"VDJ Doudleby",o:"CB",lat:48.888896,lon:14.480271,grass_m2:413},
-    {n:"VDJ Jankov",o:"CB",lat:48.968747,lon:14.301697,grass_m2:784},
-    {n:"VDJ Hosín II",o:"CB",lat:49.030641,lon:14.501012,grass_m2:4173},
-    {n:"VDJ Chlum",o:"CB",lat:49.096493,lon:14.388679,grass_m2:535},
-    {n:"VDJ Chotýčany",o:"CB",lat:49.070748,lon:14.519460,grass_m2:4775},
-    {n:"VDJ Rudolfov III",o:"CB",lat:48.986207,lon:14.547076,grass_m2:1868},
-    {n:"VDJ Rimov - Vesce",o:"CB",lat:48.847847,lon:14.466957,grass_m2:662},
-    {n:"VDJ Hosin",o:"CB",lat:49.033641,lon:14.492878,grass_m2:809},
-    {n:"VDJ Včelná",o:"CB",lat:48.924663,lon:14.463506,grass_m2:8660},
-    {n:"VDJ Húry",o:"CB",lat:49.006417,lon:14.549815,grass_m2:395},
-    {n:"VDJ Chlumec",o:"CB",lat:49.124766,lon:14.431321,grass_m2:811},
-    {n:"VDJ Olešník",o:"CB",lat:49.111103,lon:14.377766,grass_m2:380},
-    {n:"ČS Bukovec",o:"CB",lat:48.881608,lon:14.449233,grass_m2:4943},
-    {n:"VDJ Heřman",o:"CB",lat:48.909479,lon:14.499876,grass_m2:982},
-    {n:"ČS Vidov u řeky",o:"CB",lat:48.924157,lon:14.489619,grass_m2:2501},
-    {n:"Vrt Vidov",o:"CB",lat:48.924066,lon:14.489679,grass_m2:470},
-    {n:"ÚV Plav",o:"CB",lat:48.912611,lon:14.494018,grass_m2:374777},
-    {n:"VDJ Čekanice",o:"TA",lat:49.422197,lon:14.689896,grass_m2:6344},
-    {n:"VDJ Svatá Anna",o:"TA",lat:49.401133,lon:14.698640,grass_m2:4192},
-    {n:"VDJ Bezděčín",o:"TA",lat:49.323096,lon:14.628405,grass_m2:1996},
-    {n:"VDJ Milevsko",o:"TA",lat:49.452521,lon:14.344102,grass_m2:823},
-    {n:"VDJ Hodušín",o:"TA",lat:49.429670,lon:14.474214,grass_m2:1708},
-    {n:"VDJ Všechov",o:"TA",lat:49.430159,lon:14.623205,grass_m2:1574},
-    {n:"VDJ Zlukov",o:"TA",lat:49.196289,lon:14.736382,grass_m2:1520},
-    {n:"ÚV Tábor",o:"TA",lat:49.422872,lon:14.666426,grass_m2:12262},
-    {n:"ČS Sudoměřice",o:"TA",lat:49.286580,lon:14.547794,grass_m2:2508},
-    {n:"Provozní Vodojem Tábor",o:"TA",lat:49.424264,lon:14.666384,grass_m2:1853}
+    {n:"VDJ Amerika II",o:"PI",lat:49.305131,lon:14.166126,grass_m2:3303},
+    {n:"VDJ Drahonice",o:"ST",lat:49.202902,lon:14.063713,grass_m2:5953},
+    {n:"VDJ Vodňany",o:"ST",lat:49.164550,lon:14.177836,grass_m2:1594},
+    {n:"VDJ Hlavatce",o:"CB",lat:49.063584,lon:14.267751,grass_m2:7968},
+    {n:"VDJ Šibeniční vrch I",o:"PT",lat:49.025083,lon:13.994111,grass_m2:1835},
+    {n:"ÚV Husinecka přehrada",o:"PT",lat:49.034362,lon:13.996830,grass_m2:4908},
+    {n:"VDJ Šibeniční vrch II",o:"PT",lat:49.026710,lon:13.994001,grass_m2:3206},
+    {n:"VDJ Zálužany",o:"PI",lat:49.552857,lon:14.083381,grass_m2:2350},
+    {n:"VDJ Ptáčník",o:"PT",lat:49.066147,lon:14.186844,grass_m2:1070},
+    {n:"VDJ Zdoba",o:"CB",lat:49.212422,lon:14.338095,grass_m2:15523},
+    {n:"VDJ Domoradice",o:"CK",lat:48.829651,lon:14.326564,grass_m2:4148},
+    {n:"VDJ Horní Brána",o:"CK",lat:48.807970,lon:14.329352,grass_m2:1665},
+    {n:"VDJ Netřebice",o:"CK",lat:48.783277,lon:14.456447,grass_m2:877},
+    {n:"VDJ Plešivec",o:"CK",lat:48.802231,lon:14.304933,grass_m2:975},
+    {n:"VDJ Doudleby",o:"CB",lat:48.888896,lon:14.480271,grass_m2:413},
+    {n:"VDJ Jankov",o:"CB",lat:48.968747,lon:14.301697,grass_m2:784},
+    {n:"VDJ Hosín II",o:"CB",lat:49.030641,lon:14.501012,grass_m2:4173},
+    {n:"VDJ Chlum",o:"CB",lat:49.096493,lon:14.388679,grass_m2:535},
+    {n:"VDJ Chotýčany",o:"CB",lat:49.070748,lon:14.519460,grass_m2:4775},
+    {n:"VDJ Rudolfov III",o:"CB",lat:48.986207,lon:14.547076,grass_m2:1868},
+    {n:"VDJ Rimov - Vesce",o:"CB",lat:48.847847,lon:14.466957,grass_m2:662},
+    {n:"VDJ Hosin",o:"CB",lat:49.033641,lon:14.492878,grass_m2:809},
+    {n:"VDJ Včelná",o:"CB",lat:48.924663,lon:14.463506,grass_m2:8660},
+    {n:"VDJ Húry",o:"CB",lat:49.006417,lon:14.549815,grass_m2:395},
+    {n:"VDJ Chlumec",o:"CB",lat:49.124766,lon:14.431321,grass_m2:811},
+    {n:"VDJ Olešník",o:"CB",lat:49.111103,lon:14.377766,grass_m2:380},
+    {n:"ČS Bukovec",o:"CB",lat:48.881608,lon:14.449233,grass_m2:4943},
+    {n:"VDJ Heřman",o:"CB",lat:48.909479,lon:14.499876,grass_m2:982},
+    {n:"ČS Vidov u řeky",o:"CB",lat:48.924157,lon:14.489619,grass_m2:2501},
+    {n:"Vrt Vidov",o:"CB",lat:48.924066,lon:14.489679,grass_m2:470},
+    {n:"ÚV Plav",o:"CB",lat:48.912611,lon:14.494018,grass_m2:374777},
+    {n:"VDJ Čekanice",o:"TA",lat:49.422197,lon:14.689896,grass_m2:6344},
+    {n:"VDJ Svatá Anna",o:"TA",lat:49.401133,lon:14.698640,grass_m2:4192},
+    {n:"VDJ Bezděčín",o:"TA",lat:49.323096,lon:14.628405,grass_m2:1996},
+    {n:"VDJ Milevsko",o:"TA",lat:49.452521,lon:14.344102,grass_m2:823},
+    {n:"VDJ Hodušín",o:"TA",lat:49.429670,lon:14.474214,grass_m2:1708},
+    {n:"VDJ Všechov",o:"TA",lat:49.430159,lon:14.623205,grass_m2:1574},
+    {n:"VDJ Zlukov",o:"TA",lat:49.196289,lon:14.736382,grass_m2:1520},
+    {n:"ÚV Tábor",o:"TA",lat:49.422872,lon:14.666426,grass_m2:12262},
+    {n:"ČS Sudoměřice",o:"TA",lat:49.286580,lon:14.547794,grass_m2:2508},
+    {n:"Provozní Vodojem Tábor",o:"TA",lat:49.424264,lon:14.666384,grass_m2:1853}
 ];
-
+ 
 let filtered = [...objects];
 let route = [];
 let routeLine;
@@ -341,7 +1279,7 @@ let markers = [];
 let drawnItems;
 let currentLocationMarker = null; // Pro sledování markeru polohy
 let routingControl;
-
+ 
 // Firestore proměnné
 let db;
 let auth;
@@ -349,658 +1287,661 @@ let userId = 'anonymous'; // Default
 let completionData = {}; // {objectName: {isCompleted: bool, grass_m2: number}}
 let totalGrassArea = 0;
 let remainingGrassArea = 0;
-
+ 
 // --- MAPA A VRSTVY ---
-
+ 
 const defaultTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 20,
-    attribution: '&copy; OpenStreetMap contributors'
+    maxZoom: 20,
+    attribution: '© OpenStreetMap contributors'
 });
-
+ 
 const esriTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 19,
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    maxZoom: 19,
+    attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
 });
-
+ 
 const map = L.map('map', { 
-    preferCanvas: true,
-    layers: [defaultTileLayer]
+    preferCanvas: true,
+    layers: [defaultTileLayer]
 }).setView([49.1, 14.4], 9);
-
+ 
 let currentTileLayer = defaultTileLayer;
-
+ 
 // --- FIREBASE/FIRESTORE LOGIKA ---
-
+ 
 async function initializeFirebase() {
-    try {
-        setLogLevel('debug');
-        
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        if (!firebaseConfig.apiKey) {
-            console.warn("Firebase config not found. Running without persistence.");
-            document.getElementById('grass-loading-status').textContent = "Upozornění: Databáze není připojena.";
-            calculateAndDisplayGrassSummary(); // Spočítat jen ze statických dat
-            return;
-        }
-
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
-
-        // Přihlášení uživatele
-        if (initialAuthToken) {
-            await signInWithCustomToken(auth, initialAuthToken);
-        } else {
-            await signInAnonymously(auth);
-        }
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                userId = user.uid;
-                document.getElementById('grass-loading-status').textContent = `Uživatel: ${userId.substring(0, 8)}... (Připojeno)`;
-                listenForCompletionUpdates(appId, userId);
-            } else {
-                console.error("Firebase Auth failed.");
-                document.getElementById('grass-loading-status').textContent = "Chyba: Přihlášení do databáze selhalo.";
-            }
-        });
-
-    } catch (e) {
-        console.error("Chyba inicializace Firebase:", e);
-        document.getElementById('grass-loading-status').textContent = "Chyba inicializace Firebase.";
-    }
+    try {
+        setLogLevel('debug');
+         
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+ 
+        if (!firebaseConfig.apiKey) {
+            console.warn("Firebase config not found. Running without persistence.");
+            document.getElementById('grass-loading-status').textContent = "Upozornění: Databáze není připojena.";
+            calculateAndDisplayGrassSummary(); // Spočítat jen ze statických dat
+            return;
+        }
+ 
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+ 
+        // Přihlášení uživatele
+        if (initialAuthToken) {
+            await signInWithCustomToken(auth, initialAuthToken);
+        } else {
+            await signInAnonymously(auth);
+        }
+ 
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userId = user.uid;
+                document.getElementById('grass-loading-status').textContent = `Uživatel: ${userId.substring(0, 8)}... (Připojeno)`;
+                listenForCompletionUpdates(appId, userId);
+            } else {
+                console.error("Firebase Auth failed.");
+                document.getElementById('grass-loading-status').textContent = "Chyba: Přihlášení do databáze selhalo.";
+            }
+        });
+ 
+    } catch (e) {
+        console.error("Chyba inicializace Firebase:", e);
+        document.getElementById('grass-loading-status').textContent = "Chyba inicializace Firebase.";
+    }
 }
-
+ 
 function listenForCompletionUpdates(appId, currentUserId) {
-    const collPath = `/artifacts/${appId}/users/${currentUserId}/completionStatus`;
-    const q = query(collection(db, collPath));
-    
-    // Zastavit starý listener, pokud existuje (není potřeba, protože se volá jen jednou po auth)
-
-    onSnapshot(q, (snapshot) => {
-        const changes = snapshot.docChanges();
-        
-        // Aktualizace completionData
-        changes.forEach((change) => {
-            if (change.type === "added" || change.type === "modified") {
-                const data = change.doc.data();
-                completionData[data.name] = {
-                    isCompleted: data.isCompleted,
-                    grass_m2: data.grass_m2 
-                };
-            } else if (change.type === "removed") {
-                delete completionData[change.doc.id];
-            }
-        });
-
-        // Musíme zajistit, že všechna statická data jsou v completionData,
-        // a pokud ne, inicializovat je.
-        initializeMissingCompletionData();
-        
-        // Přepočítat a vykreslit data
-        calculateAndDisplayGrassSummary();
-        render(); // Vykreslí markery s novým stavem
-    }, (error) => {
-        console.error("Firestore snapshot chyba:", error);
-        document.getElementById('grass-loading-status').textContent = "Chyba databáze (smazaná data).";
-    });
+    const collPath = `/artifacts/${appId}/users/${currentUserId}/completionStatus`;
+    const q = query(collection(db, collPath));
+     
+    // Zastavit starý listener, pokud existuje (není potřeba, protože se volá jen jednou po auth)
+ 
+    onSnapshot(q, (snapshot) => {
+        const changes = snapshot.docChanges();
+         
+        // Aktualizace completionData
+        changes.forEach((change) => {
+            if (change.type === "added" || change.type === "modified") {
+                const data = change.doc.data();
+                completionData[data.name] = {
+                    isCompleted: data.isCompleted,
+                    grass_m2: data.grass_m2 
+                };
+            } else if (change.type === "removed") {
+                delete completionData[change.doc.id];
+            }
+        });
+ 
+        // Musíme zajistit, že všechna statická data jsou v completionData,
+        // a pokud ne, inicializovat je.
+        initializeMissingCompletionData();
+         
+        // Přepočítat a vykreslit data
+        calculateAndDisplayGrassSummary();
+        render(); // Vykreslí markery s novým stavem
+    }, (error) => {
+        console.error("Firestore snapshot chyba:", error);
+        document.getElementById('grass-loading-status').textContent = "Chyba databáze (smazaná data).";
+    });
 }
-
+ 
 function initializeMissingCompletionData() {
-    const batch = writeBatch(db);
-    let needsCommit = false;
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-    const collPath = `/artifacts/${appId}/users/${userId}/completionStatus`;
-
-    objects.forEach(obj => {
-        if (!completionData[obj.n]) {
-            // Inicializuj chybějící data lokálně i v batchi
-            completionData[obj.n] = { isCompleted: false, grass_m2: obj.grass_m2 };
-            
-            const docRef = doc(db, collPath, obj.n.replace(/ /g, '_')); // Použijeme název jako ID, ale nahradíme mezery
-            batch.set(docRef, { 
-                name: obj.n,
-                isCompleted: false,
-                grass_m2: obj.grass_m2,
-                // Pro jednodušší dotazování
-                okres: obj.o, 
-            });
-            needsCommit = true;
-        }
-    });
-
-    if (needsCommit) {
-        batch.commit().catch(e => console.error("Chyba při inicializaci dat:", e));
-    }
+    const batch = writeBatch(db);
+    let needsCommit = false;
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const collPath = `/artifacts/${appId}/users/${userId}/completionStatus`;
+ 
+    objects.forEach(obj => {
+        if (!completionData[obj.n]) {
+            // Inicializuj chybějící data lokálně i v batchi
+            completionData[obj.n] = { isCompleted: false, grass_m2: obj.grass_m2 };
+             
+            const docRef = doc(db, collPath, obj.n.replace(/ /g, '_')); // Použijeme název jako ID, ale nahradíme mezery
+            batch.set(docRef, { 
+                name: obj.n,
+                isCompleted: false,
+                grass_m2: obj.grass_m2,
+                // Pro jednodušší dotazování
+                okres: obj.o, 
+            });
+            needsCommit = true;
+        }
+    });
+ 
+    if (needsCommit) {
+        batch.commit().catch(e => console.error("Chyba při inicializaci dat:", e));
+    }
 }
-
-
+ 
+ 
 function calculateAndDisplayGrassSummary() {
-    totalGrassArea = 0;
-    remainingGrassArea = 0;
-
-    // Procházíme statický seznam objektů, abychom zajistili, že pokryjeme vše
-    objects.forEach(obj => {
-        const status = completionData[obj.n];
-        const area = obj.grass_m2 || 0; 
-        
-        totalGrassArea += area;
-
-        if (!status || status.isCompleted === false) {
-            remainingGrassArea += area;
-        }
-    });
-
-    // Aktualizace UI
-    document.getElementById('stGrassTotal').textContent = totalGrassArea.toLocaleString('cs-CZ') + ' m²';
-    document.getElementById('stGrassRemaining').textContent = remainingGrassArea.toLocaleString('cs-CZ') + ' m²';
-
-    // Aktualizace barvy based on completion
-    document.getElementById('stGrassRemaining').style.color = remainingGrassArea > 0 ? 'var(--accent-secondary)' : 'var(--completed)';
-    document.getElementById('stGrassTotal').style.color = 'var(--accent-primary)';
+    totalGrassArea = 0;
+    remainingGrassArea = 0;
+ 
+    // Procházíme statický seznam objektů, abychom zajistili, že pokryjeme vše
+    objects.forEach(obj => {
+        const status = completionData[obj.n];
+        const area = obj.grass_m2 || 0; 
+         
+        totalGrassArea += area;
+ 
+        if (!status || status.isCompleted === false) {
+            remainingGrassArea += area;
+        }
+    });
+ 
+    // Aktualizace UI
+    document.getElementById('stGrassTotal').textContent = totalGrassArea.toLocaleString('cs-CZ') + ' m²';
+    document.getElementById('stGrassRemaining').textContent = remainingGrassArea.toLocaleString('cs-CZ') + ' m²';
+ 
+    // Aktualizace barvy based on completion
+    document.getElementById('stGrassRemaining').style.color = remainingGrassArea > 0 ? 'var(--accent-secondary)' : 'var(--completed)';
+    document.getElementById('stGrassTotal').style.color = 'var(--accent-primary)';
 }
-
+ 
 window.toggleCompletionStatus = async function(name) {
-    if (!db || !userId) {
-        showModal("Chyba Databáze", "Databáze není připojena, nelze aktualizovat stav dokončení.");
-        return;
-    }
-    
-    const obj = objects.find(o => o.n === name);
-    if (!obj) return;
-    
-    const currentStatus = completionData[name] ? completionData[name].isCompleted : false;
-    const newStatus = !currentStatus;
-    
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-    const docRef = doc(db, `/artifacts/${appId}/users/${userId}/completionStatus`, name.replace(/ /g, '_'));
-
-    try {
-        // Pouze setDoc, protože dokument již byl inicializován
-        await setDoc(docRef, { 
-            name: obj.n,
-            isCompleted: newStatus,
-            grass_m2: obj.grass_m2,
-            okres: obj.o,
-        }, { merge: true });
-        
-        // Zde se nemusí znovu volat render/calculate, protože to zařídí onSnapshot
-
-    } catch (e) {
-        showModal("Chyba Zápisu", `Nepodařilo se aktualizovat stav v databázi: ${e.message}`);
-        console.error("Firestore write error:", e);
-    }
+    if (!db || !userId) {
+        showModal("Chyba Databáze", "Databáze není připojena, nelze aktualizovat stav dokončení.");
+        return;
+    }
+     
+    const obj = objects.find(o => o.n === name);
+    if (!obj) return;
+     
+    const currentStatus = completionData[name] ? completionData[name].isCompleted : false;
+    const newStatus = !currentStatus;
+     
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const docRef = doc(db, `/artifacts/${appId}/users/${userId}/completionStatus`, name.replace(/ /g, '_'));
+ 
+    try {
+        // Pouze setDoc, protože dokument již byl inicializován
+        await setDoc(docRef, { 
+            name: obj.n,
+            isCompleted: newStatus,
+            grass_m2: obj.grass_m2,
+            okres: obj.o,
+        }, { merge: true });
+         
+        // Zde se nemusí znovu volat render/calculate, protože to zařídí onSnapshot
+ 
+    } catch (e) {
+        showModal("Chyba Zápisu", `Nepodařilo se aktualizovat stav v databázi: ${e.message}`);
+        console.error("Firestore write error:", e);
+    }
 }
-
-
+ 
+ 
 // --- MAPA A INTERAKCE ---
-
+ 
 function toggleHDMap() {
-    if (currentTileLayer === defaultTileLayer) {
-        map.removeLayer(defaultTileLayer);
-        map.addLayer(esriTileLayer);
-        currentTileLayer = esriTileLayer;
-    } else {
-        map.removeLayer(esriTileLayer);
-        map.addLayer(defaultTileLayer);
-        currentTileLayer = defaultTileLayer;
-    }
+    if (currentTileLayer === defaultTileLayer) {
+        map.removeLayer(defaultTileLayer);
+        map.addLayer(esriTileLayer);
+        currentTileLayer = esriTileLayer;
+    } else {
+        map.removeLayer(esriTileLayer);
+        map.addLayer(defaultTileLayer);
+        currentTileLayer = defaultTileLayer;
+    }
 }
-
+ 
 function toggleTheme() {
-    const body = document.getElementById('appBody');
-    const isRed = body.classList.toggle('theme-red');
-    
-    const topBar = document.querySelector('.top');
-    const accentPrimary = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary');
-    topBar.style.borderColor = accentPrimary;
-
-    if (routeLine) {
-        routeLine.setStyle({ color: accentPrimary });
-    }
-    
-    render();
+    const body = document.getElementById('appBody');
+    const isRed = body.classList.toggle('theme-red');
+     
+    const topBar = document.querySelector('.top');
+    const accentPrimary = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary');
+    topBar.style.borderColor = accentPrimary;
+ 
+    if (routeLine) {
+        routeLine.setStyle({ color: accentPrimary });
+    }
+     
+    render();
 }
-
+ 
 function removeCurrentLocationMarker() {
-    if (currentLocationMarker) {
-        map.removeLayer(currentLocationMarker);
-        currentLocationMarker = null;
-    }
+    if (currentLocationMarker) {
+        map.removeLayer(currentLocationMarker);
+        currentLocationMarker = null;
+    }
 }
-
+ 
 function geoLocate() {
-    removeCurrentLocationMarker(); // Odebrání předchozího markeru
-
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                map.setView([lat, lon], 14);
-                
-                const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-secondary');
-                
-                currentLocationMarker = L.marker([lat, lon], {
-                    icon: L.divIcon({
-                        className: 'current-location-marker',
-                        html: `<i class="fas fa-crosshairs fa-beat" style="color:${accentColor}; font-size: 24px;"></i>`,
-                        iconSize: [24, 24],
-                        iconAnchor: [12, 12]
-                    })
-                }).addTo(map).bindPopup('Aktuální poloha').openPopup();
-            },
-            () => {
-                console.error('Nepodařilo se zjistit Vaši polohu.');
-            }
-        );
-    } else {
-        console.warn('Váš prohlížeč nepodporuje geolokaci.');
-    }
+    removeCurrentLocationMarker(); // Odebrání předchozího markeru
+ 
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                map.setView([lat, lon], 14);
+                 
+                const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-secondary');
+                 
+                currentLocationMarker = L.marker([lat, lon], {
+                    icon: L.divIcon({
+                        className: 'current-location-marker',
+                        html: `<i class="fas fa-crosshairs fa-beat" style="color:${accentColor}; font-size: 24px;"></i>`,
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    })
+                }).addTo(map).bindPopup('Aktuální poloha').openPopup();
+            },
+            () => {
+                console.error('Nepodařilo se zjistit Vaši polohu.');
+            }
+        );
+    } else {
+        console.warn('Váš prohlížeč nepodporuje geolokaci.');
+    }
 }
-
-
+ 
+ 
 // --- TRASOVÁNÍ, FILTRY A VYKRESLOVÁNÍ ---
-
+ 
 function getPopupContent(data) {
-    const isInRoute = route.includes(data);
-    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary');
-    
-    const status = completionData[data.n] || { isCompleted: false, grass_m2: data.grass_m2 };
-    const isCompleted = status.isCompleted;
-    const completionColor = isCompleted ? 'var(--completed)' : accentColor;
-    const completionText = isCompleted ? 'Odebrat Dokončení (Dokončeno)' : 'Označit jako Dokončené';
-    const completionIcon = isCompleted ? 'fas fa-undo' : 'fas fa-check-double';
-    
-    return `
-        <div style="color: #0b1220; font-family: sans-serif; min-width: 180px;">
-            <h3 style="margin: 0 0 5px; color: ${accentColor};">${data.n}</h3>
-            <p style="margin: 0 0 5px; font-size: 11px;">
-                Okres: <strong>${data.o}</strong><br>
-                Travnatá plocha: <strong>${data.grass_m2.toLocaleString('cs-CZ')} m²</strong>
-            </p>
-            
-            <!-- Tlačítko pro Sledování Dokončení -->
-            <button onclick="window.toggleCompletionStatus('${data.n}')" 
-                    style="background: ${isCompleted ? completionColor : '#020617'}; 
-                           color: ${isCompleted ? 'white' : completionColor}; 
-                           border: 1px solid ${completionColor}; 
-                           padding: 6px 10px; border-radius: 6px; cursor: pointer; margin-top: 5px; width: 100%; font-weight: bold;">
-                <i class="${completionIcon}"></i> ${completionText}
-            </button>
-            
-            <hr style="border-color: #ccc; margin: 8px 0;">
-            
-            <!-- Tlačítka pro Trasu -->
-            ${isInRoute 
-                ? `<button onclick="window.toggleRoutePoint('${data.n}')" style="background: ${accentColor}; color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; margin-top: 5px; width: 100%; font-weight: bold;"><i class="fas fa-minus-circle"></i> Odebrat z Trasy</button>`
-                : `<button onclick="window.toggleRoutePoint('${data.n}')" style="background: #0f172a; color: white; border: 1px solid ${accentColor}; padding: 5px 10px; border-radius: 6px; cursor: pointer; margin-top: 5px; width: 100%;"><i class="fas fa-plus-circle"></i> Přidat do Trasy</button>`
-            }
-            <button onclick="window.startRouteFromPoint('${data.n}')" style="background: none; color: ${accentColor}; border: 1px solid ${accentColor}; padding: 5px 10px; border-radius: 6px; cursor: pointer; margin-top: 8px; width: 100%;"><i class="fas fa-play"></i> Zvolit jako Počáteční Bod</button>
-        </div>
-    `;
+    const isInRoute = route.includes(data);
+    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary');
+     
+    const status = completionData[data.n] || { isCompleted: false, grass_m2: data.grass_m2 };
+    const isCompleted = status.isCompleted;
+    const completionColor = isCompleted ? 'var(--completed)' : accentColor;
+    const completionText = isCompleted ? 'Odebrat Dokončení (Dokončeno)' : 'Označit jako Dokončené';
+    const completionIcon = isCompleted ? 'fas fa-undo' : 'fas fa-check-double';
+     
+    return `
+        <div style="color: #0b1220; font-family: sans-serif; min-width: 180px;">
+            <h3 style="margin: 0 0 5px; color: ${accentColor};">${data.n}</h3>
+            <p style="margin: 0 0 5px; font-size: 11px;">
+                Okres: <strong>${data.o}</strong><br>
+                Travnatá plocha: <strong>${data.grass_m2.toLocaleString('cs-CZ')} m²</strong>
+            </p>
+             
+            <!-- Tlačítko pro Sledování Dokončení -->
+            <button onclick="window.toggleCompletionStatus('${data.n}')"
+                    style="background: ${isCompleted ? completionColor : '#020617'}; 
+                           color: ${isCompleted ? 'white' : completionColor}; 
+                           border: 1px solid ${completionColor}; 
+                           padding: 6px 10px; border-radius: 6px; cursor: pointer; margin-top: 5px; width: 100%; font-weight: bold;">
+                <i class="${completionIcon}"></i> ${completionText}
+            </button>
+             
+            <hr style="border-color: #ccc; margin: 8px 0;">
+             
+            <!-- Odkaz na Google Maps -->
+            <a href="https://www.google.com/maps/search/?api=1&query=${data.lat},${data.lon}" target="_blank" style="display: block; text-align: center; color: ${accentColor}; margin-top: 5px;">Otevřít v Google Maps</a>
+             
+            <!-- Tlačítka pro Trasu -->
+            ${isInRoute 
+                ? `<button onclick="window.toggleRoutePoint('${data.n}')" style="background: ${accentColor}; color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; margin-top: 5px; width: 100%; font-weight: bold;"><i class="fas fa-minus-circle"></i> Odebrat z Trasy</button>`
+                : `<button onclick="window.toggleRoutePoint('${data.n}')" style="background: #0f172a; color: white; border: 1px solid ${accentColor}; padding: 5px 10px; border-radius: 6px; cursor: pointer; margin-top: 5px; width: 100%;"><i class="fas fa-plus-circle"></i> Přidat do Trasy</button>`
+            }
+            <button onclick="window.startRouteFromPoint('${data.n}')" style="background: none; color: ${accentColor}; border: 1px solid ${accentColor}; padding: 5px 10px; border-radius: 6px; cursor: pointer; margin-top: 8px; width: 100%;"><i class="fas fa-play"></i> Zvolit jako Počáteční Bod</button>
+        </div>
+    `;
 }
-
+ 
 function render() {
-    markers.forEach(m => map.removeLayer(m));
-    markers = [];
-    
-    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary');
-    const completedColor = getComputedStyle(document.documentElement).getPropertyValue('--completed');
-
-    filtered.forEach(d => {
-        const isCompleted = completionData[d.n] ? completionData[d.n].isCompleted : false;
-        const markerColor = isCompleted ? completedColor : accentColor;
-        
-        const m = L.circleMarker([d.lat, d.lon], {
-            radius: isCompleted ? 10 : 8,
-            color: isCompleted ? completedColor : accentColor,
-            fillColor: isCompleted ? completedColor : accentColor,
-            fillOpacity: isCompleted ? 0.9 : 0.8,
-            weight: 2
-        }).addTo(map);
-
-        m.data = d;
-        m.bindPopup(() => getPopupContent(d));
-
-        // Nastavení třídy pro outline
-        m.on('add', function() {
-            const markerElement = m.getElement();
-            if (markerElement) {
-                if (isCompleted) {
-                    markerElement.classList.add('completed-area');
-                } else {
-                    markerElement.classList.remove('completed-area');
-                }
-                
-                // Aktualizace třídy pro zvýraznění trasy
-                if (route.includes(d)) {
-                    markerElement.classList.add('route-active');
-                } else {
-                    markerElement.classList.remove('route-active');
-                }
-            }
-        });
-
-        const markerElement = m.getElement();
-        if (markerElement) {
-            // Při rychlém přepnutí/renderu, kdy už je element v DOM
-             if (isCompleted) {
-                markerElement.classList.add('completed-area');
-            } else {
-                markerElement.classList.remove('completed-area');
-            }
-            if (route.includes(d)) {
-                markerElement.classList.add('route-active');
-            } else {
-                markerElement.classList.remove('route-active');
-            }
-        }
-        
-        markers.push(m);
-    });
-    
-    document.getElementById('stObj').textContent = filtered.length;
-    updateRoute();
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
+     
+    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary');
+    const completedColor = getComputedStyle(document.documentElement).getPropertyValue('--completed');
+ 
+    filtered.forEach(d => {
+        const isCompleted = completionData[d.n] ? completionData[d.n].isCompleted : false;
+        const markerColor = isCompleted ? completedColor : accentColor;
+         
+        const m = L.circleMarker([d.lat, d.lon], {
+            radius: isCompleted ? 10 : 8,
+            color: isCompleted ? completedColor : accentColor,
+            fillColor: isCompleted ? completedColor : accentColor,
+            fillOpacity: isCompleted ? 0.9 : 0.8,
+            weight: 2
+        }).addTo(map);
+ 
+        m.data = d;
+        m.bindPopup(() => getPopupContent(d));
+ 
+        // Nastavení třídy pro outline
+        m.on('add', function() {
+            const markerElement = m.getElement();
+            if (markerElement) {
+                if (isCompleted) {
+                    markerElement.classList.add('completed-area');
+                } else {
+                    markerElement.classList.remove('completed-area');
+                }
+                 
+                // Aktualizace třídy pro zvýraznění trasy
+                if (route.includes(d)) {
+                    markerElement.classList.add('route-active');
+                } else {
+                    markerElement.classList.remove('route-active');
+                }
+            }
+        });
+ 
+        const markerElement = m.getElement();
+        if (markerElement) {
+            // Při rychlém přepnutí/renderu, kdy už je element v DOM
+             if (isCompleted) {
+                markerElement.classList.add('completed-area');
+            } else {
+                markerElement.classList.remove('completed-area');
+            }
+            if (route.includes(d)) {
+                markerElement.classList.add('route-active');
+            } else {
+                markerElement.classList.remove('route-active');
+            }
+        }
+         
+        markers.push(m);
+    });
+     
+    document.getElementById('stObj').textContent = filtered.length;
+    updateRoute();
 }
-
+ 
 window.toggleRoutePoint = function(name) {
-    const data = objects.find(o => o.n === name);
-    if (!data) return;
-    
-    const index = route.indexOf(data);
-
-    if (index === -1) {
-        route.push(data);
-    } else {
-        route.splice(index, 1);
-    }
-
-    render();
+    const data = objects.find(o => o.n === name);
+    if (!data) return;
+     
+    const index = route.indexOf(data);
+ 
+    if (index === -1) {
+        route.push(data);
+    } else {
+        route.splice(index, 1);
+    }
+ 
+    render();
 }
-
+ 
 window.startRouteFromPoint = function(name) {
-    const data = objects.find(o => o.n === name);
-    if (!data) return;
-
-    route = [data];
-    map.closePopup();
-    render();
+    const data = objects.find(o => o.n === name);
+    if (!data) return;
+ 
+    route = [data];
+    map.closePopup();
+    render();
 }
-
+ 
 function updateRoute() {
-    if (routingControl) {
-        map.removeControl(routingControl);
-        routingControl = null;
-    }
-
-    if (route.length < 2) {
-        document.getElementById('stKm').textContent = '0.0';
-        return;
-    }
-
-    const accentPrimary = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary');
-
-    routingControl = L.Routing.control({
-        waypoints: route.map(p => L.latLng(p.lat, p.lon)),
-        routeWhileDragging: false,
-        show: false,
-        createMarker: () => null,
-        lineOptions: {
-            styles: [{color: accentPrimary, weight: 5, opacity: 0.8, dashArray: '10, 5'}]
-        },
-        router: L.Routing.osrmv1({
-            serviceUrl: 'https://router.project-osrm.org/route/v1'
-        })
-    }).addTo(map);
-
-    routingControl.on('routesfound', function(e) {
-        const km = e.routes[0].summary.totalDistance / 1000;
-        document.getElementById('stKm').textContent = km.toFixed(1);
-    });
+    if (routingControl) {
+        map.removeControl(routingControl);
+        routingControl = null;
+    }
+ 
+    if (route.length < 2) {
+        document.getElementById('stKm').textContent = '0.0';
+        return;
+    }
+ 
+    const accentPrimary = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary');
+ 
+    routingControl = L.Routing.control({
+        waypoints: route.map(p => L.latLng(p.lat, p.lon)),
+        routeWhileDragging: false,
+        show: false,
+        createMarker: () => null,
+        lineOptions: {
+            styles: [{color: accentPrimary, weight: 5, opacity: 0.8, dashArray: '10, 5'}]
+        },
+        router: L.Routing.osrmv1({
+            serviceUrl: 'https://router.project-osrm.org/route/v1'
+        })
+    }).addTo(map);
+ 
+    routingControl.on('routesfound', function(e) {
+        const km = e.routes[0].summary.totalDistance / 1000;
+        document.getElementById('stKm').textContent = km.toFixed(1);
+    });
 }
-
+ 
 function clearRoute() {
-    route = [];
-    if (routingControl) {
-        map.removeControl(routingControl);
-        routingControl = null;
-    }
-    removeCurrentLocationMarker(); // Odstranění markeru polohy
-    render();
+    route = [];
+    if (routingControl) {
+        map.removeControl(routingControl);
+        routingControl = null;
+    }
+    removeCurrentLocationMarker(); // Odstranění markeru polohy
+    render();
 }
-
+ 
 function startRoute() {
-    clearRoute();
+    clearRoute();
 }
-
+ 
 function applyFilters() {
-    const nameFilter = document.getElementById('fName').value.toLowerCase();
-    const okresFilter = document.getElementById('fOkres').value;
-
-    filtered = objects.filter(d => 
-        (!nameFilter || d.n.toLowerCase().includes(nameFilter)) &&
-        (okresFilter === 'all' || d.o === okresFilter)
-    );
-    render();
+    const nameFilter = document.getElementById('fName').value.toLowerCase();
+    const okresFilter = document.getElementById('fOkres').value;
+ 
+    filtered = objects.filter(d => 
+        (!nameFilter || d.n.toLowerCase().includes(nameFilter)) &&
+        (okresFilter === 'all' || d.o === okresFilter)
+    );
+    render();
 }
-
+ 
 function togglePanel() {
-    document.getElementById('filterPanel').classList.toggle('open');
+    document.getElementById('filterPanel').classList.toggle('open');
 }
-
-
+ 
+ 
 // --- GEMINI API LOGIKA ---
-
+ 
 const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent";
-const apiKey = ""; 
-
+const apiKey = "YOUR_GEMINI_API_KEY_HERE";  // Nahraďte svým skutečným API klíčem pro zprovoznění AI
+ 
 function showModal(title, content, sources = []) {
-    document.getElementById('aiModalTitle').textContent = title;
-    document.getElementById('aiModalBody').innerHTML = content;
-    
-    const sourcesDiv = document.getElementById('aiModalSources');
-    if (sources.length > 0) {
-        sourcesDiv.style.display = 'block';
-        sourcesDiv.innerHTML = '<strong>Zdroje pro Ověření:</strong><br>' + sources.map(s => 
-            `<a href="${s.uri}" target="_blank" class="text-xs text-blue-400 hover:text-blue-200 block">${s.title}</a>`
-        ).join('');
-    } else {
-        sourcesDiv.style.display = 'none';
-    }
-    
-    document.getElementById('aiModal').style.display = 'flex';
+    document.getElementById('aiModalTitle').textContent = title;
+    document.getElementById('aiModalBody').innerHTML = content;
+     
+    const sourcesDiv = document.getElementById('aiModalSources');
+    if (sources.length > 0) {
+        sourcesDiv.style.display = 'block';
+        sourcesDiv.innerHTML = '<strong>Zdroje pro Ověření:</strong><br>' + sources.map(s => 
+            `<a href="${s.uri}" target="_blank" class="text-xs text-blue-400 hover:text-blue-200 block">${s.title}</a>`
+        ).join('');
+    } else {
+        sourcesDiv.style.display = 'none';
+    }
+     
+    document.getElementById('aiModal').style.display = 'flex';
 }
-
+ 
 function closeModal() {
-    document.getElementById('aiModal').style.display = 'none';
+    document.getElementById('aiModal').style.display = 'none';
 }
-
+ 
 async function fetchWithBackoff(url, options, maxRetries = 5) {
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-        try {
-            const response = await fetch(url, options);
-            if (!response.ok) {
-                if (response.status === 429 && attempt < maxRetries - 1) {
-                    const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    continue; 
-                }
-                throw new Error(`API call failed with status: ${response.status}`);
-            }
-            return response;
-        } catch (error) {
-            if (attempt === maxRetries - 1) {
-                throw error;
-            }
-            const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
-    }
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            const response = await fetch(url, options);
+            if (!response.ok) {
+                if (response.status === 429 && attempt < maxRetries - 1) {
+                    const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue; 
+                }
+                throw new Error(`API call failed with status: ${response.status}`);
+            }
+            return response;
+        } catch (error) {
+            if (attempt === maxRetries - 1) {
+                throw error;
+            }
+            const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
 }
-
+ 
 window.generateRoutePlan = async function() {
-    if (route.length < 2) {
-        showModal("Chyba Plánu Trasy", `
-            <p>Pro generování protokolu inspekce musí trasa obsahovat minimálně dva objekty.<br>
-            Aktuálně máte vybráno: <strong>${route.length}</strong> objektů.</p>
-        `);
-        return;
-    }
-
-    showModal("Generování Protokolu Inspekce...", '<div class="spinner"></div>');
-
-    try {
-        const km = parseFloat(document.getElementById('stKm').textContent);
-        
-        const routeList = route.map((d, i) => 
-            `${i + 1}. ${d.n} (${d.o}) - Typ: ${d.n.includes('VDJ') ? 'Vodojem (VDJ)' : d.n.includes('ÚV') ? 'Úpravna Vody (ÚV)' : d.n.includes('ČS') ? 'Čerpací Stanice (ČS)' : 'Ostatní'}`
-        ).join('\n');
-
-        const systemPrompt = `Jsi profesionální plánovač údržby a terénních inspekcí vodohospodářských zařízení v České republice. Tvým úkolem je na základě seznamu navštívených bodů a celkové vzdálenosti vytvořit stručný, formátovaný a akční plán inspekčního protokolu pro technika. Protokol by měl obsahovat tyto sekce:
+    if (route.length < 2) {
+        showModal("Chyba Plánu Trasy", `
+            <p>Pro generování protokolu inspekce musí trasa obsahovat minimálně dva objekty.<br>
+            Aktuálně máte vybráno: <strong>${route.length}</strong> objektů.</p>
+        `);
+        return;
+    }
+ 
+    showModal("Generování Protokolu Inspekce...", '<div class="spinner"></div>');
+ 
+    try {
+        const km = parseFloat(document.getElementById('stKm').textContent);
+         
+        const routeList = route.map((d, i) => 
+            `${i + 1}. ${d.n} (${d.o}) - Typ: ${d.n.includes('VDJ') ? 'Vodojem (VDJ)' : d.n.includes('ÚV') ? 'Úpravna Vody (ÚV)' : d.n.includes('ČS') ? 'Čerpací Stanice (ČS)' : 'Ostatní'}`
+        ).join('\n');
+ 
+        const systemPrompt = `Jsi profesionální plánovač údržby a terénních inspekcí vodohospodářských zařízení v České republice. Tvým úkolem je na základě seznamu navštívených bodů a celkové vzdálenosti vytvořit stručný, formátovaný a akční plán inspekčního protokolu pro technika. Protokol by měl obsahovat tyto sekce:
 1. **Přehled Trasy:** Celková vzdálenost, počet bodů a celkový odhadovaný čas trvání inspekce (čistý čas práce na místě bez cesty). Předpokládej 45-60 minut na ÚV, 30-45 minut na VDJ, a 20-30 minut na ČS.
 2. **Klíčové Priority:** Navrhni, které zařízení vyžadují detailnější kontrolu a proč (např. ÚV jako kritické body).
 3. **Kontrolní Úkony:** Vytvoř krátký kontrolní seznam pro každý typ zařízení (VDJ, ÚV, ČS) - maximálně 3 nejdůležitější úkony pro každý typ (např. kontrola oplocení, měření průtoku, vizuální kontrola armatur, apod.).
 4. **Doporučení pro Optimalizaci:** Stručné doporučení k případné optimalizaci trasy nebo zdrojů.
 Odpovídej pouze v češtině. Použij Markdown pro formátování, jako jsou seznamy a tučné písmo.`;
-
-        const userQuery = `Naplánovaná trasa zahrnuje ${route.length} objektů s celkovou vzdáleností ${km.toFixed(1)} km. Body trasy v pořadí:
-
+ 
+        const userQuery = `Naplánovaná trasa zahrnuje ${route.length} objektů s celkovou vzdáleností ${km.toFixed(1)} km. Body trasy v pořadí:
+ 
 ${routeList}
-
+ 
 Vygeneruj inspekční protokol podle daných pokynů.`;
-
-
-        const payload = {
-            contents: [{ parts: [{ text: userQuery }] }],
-            tools: [{ "google_search": {} }],
-            systemInstruction: {
-                parts: [{ text: systemPrompt }]
-            },
-        };
-
-        const response = await fetchWithBackoff(`${API_URL}?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const result = await response.json();
-        
-        const candidate = result.candidates?.[0];
-        let generatedText = "Chyba: Nepodařilo se vygenerovat text. Zkuste to prosím znovu.";
-        let sources = [];
-
-        if (candidate && candidate.content?.parts?.[0]?.text) {
-            generatedText = candidate.content.parts[0].text;
-
-            const groundingMetadata = candidate.groundingMetadata;
-            if (groundingMetadata && groundingMetadata.groundingAttributions) {
-                sources = groundingMetadata.groundingAttributions
-                    .map(attribution => ({
-                        uri: attribution.web?.uri,
-                        title: attribution.web?.title,
-                    }))
-                    .filter(source => source.uri && source.title);
-            }
-        }
-        
-        showModal("✨ Protokol Inspekce - Generováno AI", generatedText, sources);
-
-    } catch (error) {
-        showModal("Chyba API", `
-            <p>Nastala chyba při komunikaci s AI službou. Zkuste to prosím znovu.<br>
-            Detail chyby: ${error.message || 'Neznámá chyba'}</p>
-        `);
-    }
+ 
+ 
+        const payload = {
+            contents: [{ parts: [{ text: userQuery }] }],
+            tools: [{ "google_search": {} }],
+            systemInstruction: {
+                parts: [{ text: systemPrompt }]
+            },
+        };
+ 
+        const response = await fetchWithBackoff(`${API_URL}?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+ 
+        const result = await response.json();
+         
+        const candidate = result.candidates?.[0];
+        let generatedText = "Chyba: Nepodařilo se vygenerovat text. Zkuste to prosím znovu.";
+        let sources = [];
+ 
+        if (candidate && candidate.content?.parts?.[0]?.text) {
+            generatedText = candidate.content.parts[0].text;
+ 
+            const groundingMetadata = candidate.groundingMetadata;
+            if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                sources = groundingMetadata.groundingAttributions
+                    .map(attribution => ({
+                        uri: attribution.web?.uri,
+                        title: attribution.web?.title,
+                    }))
+                    .filter(source => source.uri && source.title);
+            }
+        }
+         
+        showModal("✨ Protokol Inspekce - Generováno AI", generatedText, sources);
+ 
+    } catch (error) {
+        showModal("Chyba API", `
+            <p>Nastala chyba při komunikaci s AI službou. Zkuste to prosím znovu.<br>
+            Detail chyby: ${error.message || 'Neznámá chyba'}</p>
+        `);
+    }
 }
-
-
+ 
+ 
 // --- LEAFLET.DRAW INTEGRACE ---
 function initializeDrawControls() {
-    drawnItems = new L.FeatureGroup();
-    map.addLayer(drawnItems);
-
-    const drawControl = new L.Control.Draw({
-        edit: {
-            featureGroup: drawnItems,
-            poly: { allowIntersection: false }
-        },
-        draw: {
-            polyline: {
-                metric: true,
-                shapeOptions: {
-                    color: getComputedStyle(document.documentElement).getPropertyValue('--accent-secondary'),
-                    weight: 3
-                }
-            },
-            polygon: { showArea: true, allowIntersection: false },
-            rectangle: { showArea: true },
-            circle: true,
-            marker: true,
-            circlemarker: false
-        }
-    });
-
-    drawControl.addTo(map);
-    const drawToolbarContainer = document.querySelector('.leaflet-draw');
-    if (drawToolbarContainer) {
-        drawToolbarContainer.style.display = 'none';
-    }
-
-    document.getElementById('draw-tool-btn').addEventListener('click', () => {
-        const drawToolbar = document.querySelector('.leaflet-draw-toolbar');
-        if (drawToolbar) {
-            const isVisible = drawToolbarContainer.style.display !== 'none';
-            drawToolbarContainer.style.display = isVisible ? 'none' : 'block';
-            
-            if (!isVisible) {
-                const buttonRect = document.getElementById('draw-tool-btn').getBoundingClientRect();
-                drawToolbarContainer.style.position = 'fixed';
-                drawToolbarContainer.style.top = `${buttonRect.top + buttonRect.height + 5}px`;
-                drawToolbarContainer.style.left = '10px';
-                drawToolbarContainer.style.zIndex = '1000';
-            }
-        }
-    });
-
-    map.on(L.Draw.Event.CREATED, function (e) {
-        const type = e.layerType;
-        const layer = e.layer;
-        
-        if (type === 'polyline') {
-            const distance = L.GeometryUtil.length(layer);
-            layer.bindPopup(`<strong>Vzdálenost:</strong> ${(distance / 1000).toFixed(2)} km`).openPopup();
-        }
-        if (type === 'polygon' || type === 'rectangle') {
-             const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]);
-            layer.bindPopup(`<strong>Plocha:</strong> ${area.toFixed(2)} m²`).openPopup();
-        }
-
-        drawnItems.addLayer(layer);
-    });
+    drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+ 
+    const drawControl = new L.Control.Draw({
+        edit: {
+            featureGroup: drawnItems,
+            poly: { allowIntersection: false }
+        },
+        draw: {
+            polyline: {
+                metric: true,
+                shapeOptions: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--accent-secondary'),
+                    weight: 3
+                }
+            },
+            polygon: { showArea: true, allowIntersection: false },
+            rectangle: { showArea: true },
+            circle: true,
+            marker: true,
+            circlemarker: false
+        }
+    });
+ 
+    drawControl.addTo(map);
+    const drawToolbarContainer = document.querySelector('.leaflet-draw');
+    if (drawToolbarContainer) {
+        drawToolbarContainer.style.display = 'none';
+    }
+ 
+    document.getElementById('draw-tool-btn').addEventListener('click', () => {
+        const drawToolbar = document.querySelector('.leaflet-draw-toolbar');
+        if (drawToolbar) {
+            const isVisible = drawToolbarContainer.style.display !== 'none';
+            drawToolbarContainer.style.display = isVisible ? 'none' : 'block';
+             
+            if (!isVisible) {
+                const buttonRect = document.getElementById('draw-tool-btn').getBoundingClientRect();
+                drawToolbarContainer.style.position = 'fixed';
+                drawToolbarContainer.style.top = `${buttonRect.top + buttonRect.height + 5}px`;
+                drawToolbarContainer.style.left = '10px';
+                drawToolbarContainer.style.zIndex = '1000';
+            }
+        }
+    });
+ 
+    map.on(L.Draw.Event.CREATED, function (e) {
+        const type = e.layerType;
+        const layer = e.layer;
+         
+        if (type === 'polyline') {
+            const distance = L.GeometryUtil.length(layer);
+            layer.bindPopup(`<strong>Vzdálenost:</strong> ${(distance / 1000).toFixed(2)} km`).openPopup();
+        }
+        if (type === 'polygon' || type === 'rectangle') {
+             const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]);
+            layer.bindPopup(`<strong>Plocha:</strong> ${area.toFixed(2)} m²`).openPopup();
+        }
+ 
+        drawnItems.addLayer(layer);
+    });
 }
-
+ 
 // --- INICIALIZACE ---
-
+ 
 [...new Set(objects.map(o => o.o))].forEach(o => {
-    document.getElementById('fOkres').innerHTML += `<option value="${o}">${o}</option>`;
+    document.getElementById('fOkres').innerHTML += `<option value="${o}">${o}</option>`;
 });
-
+ 
 document.addEventListener('DOMContentLoaded', () => {
-    initializeFirebase(); // Inicializace DB
-    // render() je voláno po inicializaci databáze v listenForCompletionUpdates
-    initializeDrawControls();
-    const bounds = L.latLngBounds(objects.map(o => [o.lat, o.lon]));
-    map.fitBounds(bounds);
-    render();
+    initializeFirebase(); // Inicializace DB
+    // render() je voláno po inicializaci databáze v listenForCompletionUpdates
+    initializeDrawControls();
+    const bounds = L.latLngBounds(objects.map(o => [o.lat, o.lon]));
+    map.fitBounds(bounds);
+    render();
 });
-
+ 
 window.closeModal = closeModal;
-
+ 
 </script>
-</body>
-</html>
+ 
+</body></html>
