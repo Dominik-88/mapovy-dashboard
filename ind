@@ -178,6 +178,48 @@ a.href=URL.createObjectURL(new Blob([r.join('\n')]));
 a.download='arealy.csv';a.click();
 }
 </script>
-
+const data = [
+ {o:"PI",n:"VDJ Amerika II",k:"I.",bm:293,v:3303,lat:49.305131,lon:14.166126,s:"dobrý"},
+ {o:"ST",n:"VDJ Drahonice",k:"I.",bm:376,v:5953,lat:49.202902,lon:14.063713,s:"rizikový"},
+ {o:"ST",n:"VDJ Vodňany",k:"I.",bm:252,v:1594,lat:49.164550,lon:14.177836,s:"dobrý"},
+ {o:"CB",n:"VDJ Hlavatce",k:"Bez",bm:424,v:7968,lat:49.063584,lon:14.267751,s:"dobrý"},
+ {o:"PT",n:"VDJ Šibeniční vrch I",k:"I.",bm:245,v:1835,lat:49.025083,lon:13.994111,s:"rizikový"},
+ {o:"PT",n:"ÚV Husinecka přehrada",k:"Bez",bm:703,v:4908,lat:49.034362,lon:13.996830,s:"dobrý"},
+ {o:"PT",n:"VDJ Šibeniční vrch II",k:"I.",bm:340,v:3206,lat:49.026710,lon:13.994001,s:"dobrý"},
+ {o:"PI",n:"VDJ Zálužany",k:"Bez",bm:299,v:2350,lat:49.552857,lon:14.083381,s:"rizikový"},
+ {o:"PT",n:"VDJ Ptáčník",k:"II.",bm:239,v:1070,lat:49.066147,lon:14.186844,s:"dobrý"},
+ {o:"CB",n:"VDJ Zdoba",k:"II.",bm:225,v:15523,lat:49.212422,lon:14.338095,s:"havarijní"},
+ {o:"CK",n:"VDJ Domoradice",k:"I.",bm:450,v:4148,lat:48.829651,lon:14.326564,s:"dobrý"},
+ {o:"CK",n:"VDJ Horní Brána",k:"I.",bm:187,v:1665,lat:48.807970,lon:14.329352,s:"dobrý"},
+ {o:"CK",n:"VDJ Netřebice",k:"I.",bm:136,v:877,lat:48.783277,lon:14.456447,s:"rizikový"},
+ {o:"CK",n:"VDJ Plešivec",k:"I.",bm:119,v:975,lat:48.802231,lon:14.304933,s:"dobrý"},
+ {o:"CB",n:"VDJ Doudleby",k:"II.",bm:79,v:413,lat:48.888896,lon:14.480271,s:"dobrý"},
+ {o:"CB",n:"VDJ Jankov",k:"I.",bm:106,v:784,lat:48.968747,lon:14.301697,s:"dobrý"},
+ {o:"CB",n:"VDJ Hosín II",k:"I.",bm:399,v:4173,lat:49.030641,lon:14.501012,s:"rizikový"},
+ {o:"CB",n:"VDJ Chlum",k:"II.",bm:63,v:535,lat:49.096493,lon:14.388679,s:"dobrý"},
+ {o:"CB",n:"VDJ Chotýčany",k:"II.",bm:338,v:4775,lat:49.070748,lon:14.519460,s:"dobrý"},
+ {o:"CB",n:"VDJ Rudolfov III",k:"I.",bm:174,v:1868,lat:48.986207,lon:14.547076,s:"dobrý"},
+ {o:"CB",n:"VDJ Rimov - Vesce",k:"I.",bm:99,v:662,lat:48.847847,lon:14.466957,s:"rizikový"},
+ {o:"CB",n:"VDJ Hosin",k:"II.",bm:125,v:809,lat:49.033641,lon:14.492878,s:"dobrý"},
+ {o:"CB",n:"VDJ Včelná",k:"II.",bm:476,v:8660,lat:48.924663,lon:14.463506,s:"dobrý"},
+ {o:"CB",n:"VDJ Húry",k:"I.",bm:0,v:395,lat:49.006417,lon:14.549815,s:"havarijní"},
+ {o:"CB",n:"VDJ Chlumec",k:"II.",bm:110,v:811,lat:49.124766,lon:14.431321,s:"dobrý"},
+ {o:"CB",n:"VDJ Olešník",k:"I.",bm:117,v:380,lat:49.111103,lon:14.377766,s:"dobrý"},
+ {o:"CB",n:"ČS Bukovec",k:"I.",bm:300,v:4943,lat:48.881608,lon:14.449233,s:"rizikový"},
+ {o:"CB",n:"VDJ Heřman",k:"II.",bm:119,v:982,lat:48.909479,lon:14.499876,s:"dobrý"},
+ {o:"CB",n:"ČS Vidov u řeky",k:"II.",bm:212,v:2501,lat:48.924157,lon:14.489619,s:"dobrý"},
+ {o:"CB",n:"Vrt Vidov",k:"II.",bm:164,v:470,lat:48.924066,lon:14.489679,s:"dobrý"},
+ {o:"CB",n:"ÚV Plav",k:"I.",bm:1413,v:74777,lat:48.912611,lon:14.494018,s:"dobrý"},
+ {o:"TA",n:"VDJ Čekanice",k:"I.",bm:450,v:6344,lat:49.422197,lon:14.689896,s:"rizikový"},
+ {o:"TA",n:"VDJ Svatá Anna",k:"I.",bm:264,v:4192,lat:49.401133,lon:14.698640,s:"dobrý"},
+ {o:"TA",n:"VDJ Bezděčín",k:"I.",bm:169,v:1996,lat:49.323096,lon:14.628405,s:"dobrý"},
+ {o:"TA",n:"VDJ Milevsko",k:"I.",bm:129,v:823,lat:49.452521,lon:14.344102,s:"dobrý"},
+ {o:"TA",n:"VDJ Hodušín",k:"II.",bm:205,v:1708,lat:49.429670,lon:14.474214,s:"dobrý"},
+ {o:"TA",n:"VDJ Všechov",k:"I.",bm:199,v:1574,lat:49.430159,lon:14.623205,s:"rizikový"},
+ {o:"TA",n:"VDJ Zlukov",k:"II.",bm:184,v:1520,lat:49.196289,lon:14.736382,s:"dobrý"},
+ {o:"TA",n:"ÚV Tábor",k:"II.",bm:350,v:12262,lat:49.422872,lon:14.666426,s:"dobrý"},
+ {o:"TA",n:"ČS Sudoměřice",k:"I.",bm:220,v:2508,lat:49.286580,lon:14.547794,s:"dobrý"},
+ {o:"TA",n:"Provozní Vodojem Tábor",k:"II.",bm:155,v:1853,lat:49.424264,lon:14.666384,s:"dobrý"}
+];
 </body>
 </html>
