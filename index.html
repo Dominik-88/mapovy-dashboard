@@ -3,282 +3,997 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vodárenské areály – Kompletní management systém</title>
+<title>JVS – Interaktivní plánovací a provozní systém</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<script type="module">
+    // Importy pro Firebase/Firestore
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, onSnapshot, collection, query, writeBatch, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    
+    // Globální proměnné pro Firebase
+    window.initializeApp = initializeApp;
+    window.getAuth = getAuth;
+    window.signInAnonymously = signInAnonymously;
+    window.signInWithCustomToken = signInWithCustomToken;
+    window.onAuthStateChanged = onAuthStateChanged;
+    window.getFirestore = getFirestore;
+    window.doc = doc;
+    window.setDoc = setDoc;
+    window.onSnapshot = onSnapshot;
+    window.collection = collection;
+    window.query = query;
+    window.writeBatch = writeBatch;
+    window.setLogLevel = setLogLevel;
+</script>
 <style>
-/* Základní reset a globální styl */
-*{box-sizing:border-box}
-body{margin:0;font-family:Inter,system-ui;background:#f1f5f9;color:#0f172a}
+/* --- 3. Barevné schéma: Tmavá se Zelenou (Default) / Červenou (Alternativa) --- */
+:root {
+    --bg: #0b1220;
+    --panel: #0f172a;
+    --accent-primary: #16a34a; /* Zelená akcent (Good/Go) */
+    --accent-secondary: #dc2626; /* Červená akcent (Danger/Stop) */
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+    --completed: #34d399; /* Světle zelená pro dokončené úkoly */
+}
 
-/* Mapa přes celou výšku okna */
+/* Tmavý mód s Červeným akcentem */
+body.theme-red {
+    --accent-primary: #dc2626;
+    --accent-secondary: #16a34a;
+    --completed: #f87171;
+}
+
+/* Základní styly */
+*{box-sizing:border-box}
+body{margin:0;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);transition:background-color 0.3s}
 #map{height:100vh}
 
-/* Horní lišta aplikace */
-.top{position:fixed;top:0;left:0;right:0;z-index:1000;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
-.top h1{margin:0;font-size:15px;font-weight:700}
-.top small{opacity:.85;font-size:11px}
+/* --- 2. Sada nástrojů na levé straně: Vylepšená Viditelnost --- */
+.top{
+    position:fixed;top:0;left:0;right:0;z-index:1000;
+    background:linear-gradient(135deg, var(--panel), #080f1e);
+    border-bottom:2px solid var(--accent-primary);
+    color:#ecfdf5;padding:10px 14px;
+    display:flex;justify-content:center;align-items:center;text-align:center;
+    transition:border-color 0.3s;
+}
+.top h1{margin:0;font-size:20px;letter-spacing:2px}
+.top span{display:block;font-size:12px;opacity:.8}
 
-/* Tlačítka v horní liště */
-.btn-top{background:#ffffff22;color:#fff;border:1px solid #ffffff44;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer}
+.tools-left{
+    position:fixed;
+    top:70px;
+    left:10px;z-index:1000;
+    background:var(--panel);border-radius:12px;
+    box-shadow:0 10px 20px rgba(0,0,0,.5);
+    padding:8px;width:56px; /* Zmenšená šířka */
+    display:flex;flex-direction:column;gap:8px; /* Menší mezery */
+}
+.tool-btn{
+    background:#020617;
+    border:1px solid var(--accent-primary);
+    color:var(--accent-primary);
+    border-radius:8px; /* Jemnější rohy */
+    height:40px; /* Menší výška */
+    cursor:pointer;font-size:16px; /* Menší font pro lepší centrování */
+    transition:background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.tool-btn:hover{
+    background-color:var(--accent-primary);
+    color:var(--text);
+    box-shadow:0 0 10px rgba(var(--accent-primary), 0.5);
+}
 
-/* Pravý ovládací panel */
-.panel{position:fixed;top:56px;right:10px;z-index:1000;width:380px;max-height:calc(100vh - 70px);background:#fff;border-radius:12px;box-shadow:0 20px 40px rgba(0,0,0,.25);overflow:auto;padding:14px}
+/* --- 1. Kompaktní a zavírací filtr panel --- */
+.panel{
+    position:fixed;
+    top:70px;right:10px;z-index:1000;
+    width:340px;
+    max-height:calc(100vh - 90px);
+    background:var(--panel);
+    border-radius:14px;
+    box-shadow:0 20px 40px rgba(0,0,0,.5);
+    overflow:auto;padding:14px;
+    transform:translateX(110%);
+    transition:transform 0.3s ease-out;
+}
+.panel.open{
+    transform:translateX(0);
+}
+.panel-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s;
+}
+.panel-close-btn:hover {
+    color: var(--accent-secondary);
+}
 
-/* Jednotlivé sekce panelu */
-.section{border-bottom:1px solid #e5e7eb;margin-bottom:14px;padding-bottom:14px}
+.section{border-bottom:1px solid #1f2937;margin-bottom:14px;padding-bottom:14px}
 .section:last-child{border:none;margin:0}
-.section h2{margin:0 0 8px;font-size:13px}
-
-/* Formulářové prvky */
-label{font-size:11px;font-weight:700;color:#475569}
-input,select,button{width:100%;margin-top:4px;padding:8px;border-radius:6px;border:1px solid #e5e7eb;font-size:12px}
+.section h2{margin:0 0 8px;font-size:13px;color:var(--accent-primary);transition:color 0.3s;}
+label{font-size:11px;font-weight:700;color:var(--muted)}
+input,select,button{width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid #1f2937;background:#020617;color:var(--text);font-size:12px;transition:border-color 0.2s}
+input:focus, select:focus { border-color: var(--accent-primary); outline: none; }
 button{cursor:pointer}
-
-/* Styl primárních akcí */
-.primary{background:#2563eb;color:#fff;border:none;font-weight:700}
-.success{background:#10b981;color:#fff;border:none;font-weight:700}
-
-/* Grid pro statistické karty */
+.primary{background:var(--accent-primary);border:none;font-weight:800;color:var(--text)}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.card{background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:8px;text-align:center}
-.card .v{font-size:18px;font-weight:800}
-.card .l{font-size:10px;color:#64748b}
+.card{background:#020617;border:1px solid #1f2937;border-radius:12px;padding:10px;text-align:center}
+.card .v{font-size:18px;font-weight:900;color:var(--accent-primary);transition:color 0.3s;}
+.card .l{font-size:10px;color:var(--muted)}
 
-/* Tabulka evidence */
-.table{width:100%;border-collapse:collapse;font-size:11px}
-.table th,.table td{border-bottom:1px solid #e5e7eb;padding:6px}
-.small{font-size:10px;color:#64748b}
+/* STYL PRO DOKONČENÉ/NEDOKONČENÉ MARKERY */
+.route-active{
+    outline:3px solid var(--accent-primary);
+    box-shadow:0 0 8px var(--accent-primary);
+    transition:outline 0.3s, box-shadow 0.3s;
+}
+.completed-area {
+    color: var(--completed) !important;
+    fillColor: var(--completed) !important;
+    outline: 3px solid var(--completed) !important;
+    box-shadow: 0 0 8px var(--completed) !important;
+}
+
+/* Custom Modal for AI Output */
+.ai-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.ai-modal-content {
+    background: var(--panel);
+    border-radius: 16px;
+    padding: 20px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 80vh;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+    position: relative;
+    color: var(--text);
+    overflow-y: auto;
+}
+.ai-modal-body {
+    white-space: pre-wrap;
+    font-family: monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    background: #020617;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #1f2937;
+    overflow-x: auto;
+}
+/* Spinner */
+.spinner {
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-top: 4px solid var(--accent-primary);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* --- Vylepšení pro Leaflet.Draw controls --- */
+.leaflet-draw-toolbar a, .leaflet-draw-actions a {
+    color: var(--text) !important;
+    background: var(--panel) !important;
+    border: 1px solid #1f2937 !important;
+    border-radius: 4px !important;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+.leaflet-draw-toolbar a:hover, .leaflet-draw-actions a:hover {
+    background: var(--accent-primary) !important;
+    color: var(--text) !important;
+    border-color: var(--accent-primary) !important;
+}
 </style>
 </head>
-<body>
-
-<!-- Horní informační lišta -->
+<body id="appBody">
 <div class="top">
-  <div>
-    <h1>¤¤¤ JVS areály ¤¤¤ by Dominik Schmied</h1>
-    <small>01/2025 aktualizace</small>
-  </div>
-  <div>
-    <button class="btn-top" onclick="exportCSV()">📤 Export CSV</button>
-  </div>
+    <div>
+        <h1><i class="fas fa-map-marked-alt"></i> JVS - Plánovací a Provozní Systém</h1>
+        <span>Dominik Schmied | Verze 2.0 (Provozní Deník)</span>
+    </div>
 </div>
-
-<!-- Kontejner mapy -->
 <div id="map"></div>
 
-<!-- Ovládací panel -->
-<div class="panel">
-
-<div class="section">
-<h2>🔍 Filtry objektů</h2>
-<label>Název</label><input id="fName" oninput="applyFilters()">
-<label>Okres</label><select id="fOkres" onchange="applyFilters()"><option value="all">Všechny</option></select>
-<label>Stav</label><select id="fStav" onchange="applyFilters()"><option value="all">Všechny</option><option>dobrý</option><option>rizikový</option><option>havarijní</option></select>
+<!-- Levá sada nástrojů -->
+<div class="tools-left">
+    <button class="tool-btn" onclick="togglePanel()" title="Otevřít/Zavřít Panel Filtrů"><i class="fas fa-filter"></i></button>
+    <button class="tool-btn" onclick="startRoute()" title="Začít Novou Trasovací Sekvenci"><i class="fas fa-route"></i></button>
+    <button class="tool-btn" onclick="clearRoute()" title="Vyčistit Naplánovanou Trasu a Markery"><i class="fas fa-trash-alt"></i></button>
+    <button class="tool-btn" onclick="toggleHDMap()" title="Přepnout Mapové Podklady (HD/OSM)"><i class="fas fa-satellite-dish"></i></button>
+    <button class="tool-btn" onclick="toggleTheme()" title="Změnit Akcentní Barvu (Zelená/Červená)"><i class="fas fa-palette"></i></button>
+    <button class="tool-btn" onclick="geoLocate()" title="Najít Mojí Polohu"><i class="fas fa-location-crosshairs"></i></button>
+    <button class="tool-btn" id="draw-tool-btn" title="Nástroje pro Kreslení a Měření Vzdálenosti"><i class="fas fa-pencil-ruler"></i></button>
+    <button class="tool-btn" onclick="generateRoutePlan()" title="Generovat Plán Inspekce pomocí AI"><i class="fas fa-magic"></i></button> 
 </div>
 
-<div class="section">
-<h2>📊 Statistiky</h2>
-<div class="grid">
-<div class="card"><div class="v" id="stObj">0</div><div class="l">Objektů</div></div>
-<div class="card"><div class="v" id="stArea">0</div><div class="l">Posekáno m²</div></div>
-<div class="card"><div class="v" id="stKm">0</div><div class="l">Ujeto km</div></div>
-<div class="card"><div class="v" id="stCash">0 Kč</div><div class="l">Zisk</div></div>
-</div>
+<!-- Pravý ovládací panel (Filtr a Statistiky) -->
+<div class="panel" id="filterPanel">
+    <button class="panel-close-btn" onclick="togglePanel()"><i class="fas fa-times"></i></button>
+    <div class="section">
+        <h2>🔍 Filtr Objektů</h2>
+        <label for="fName">Název</label>
+        <input id="fName" oninput="applyFilters()" placeholder="Zadejte název vodojemu/ÚV">
+        <label for="fOkres">Okres</label>
+        <select id="fOkres" onchange="applyFilters()">
+            <option value="all">Všechny</option>
+        </select>
+    </div>
+    
+    <!-- NOVÁ SEKCE: SOUHRN TRAVNATÝCH PLOCH -->
+    <div class="section">
+        <h2>🌳 Údržba Travnatých Plocha</h2>
+        <div id="grass-loading-status" class="text-center text-sm text-yellow-400">Načítání dat z databáze...</div>
+        <div class="grid" style="grid-template-columns: 1fr;">
+            <div class="card"><div class="v" id="stGrassTotal">0 m²</div><div class="l">Celková plocha (m²)</div></div>
+            <div class="card"><div class="v" id="stGrassRemaining">0 m²</div><div class="l">Zbývá dokončit (m²)</div></div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>📊 Statistiky a Trasa</h2>
+        <div class="grid">
+            <div class="card"><div class="v" id="stObj">0</div><div class="l">Objektů (zobraz.)</div></div>
+            <div class="card"><div class="v" id="stKm">0.0</div><div class="l">km v Trase</div></div>
+        </div>
+        <p class="text-xs mt-3 text-center text-gray-500">Klikněte na bod na mapě a zvolte "Přidat do Trasy" nebo "Start Trasy".</p>
+    </div>
 </div>
 
-<div class="section">
-<h2>👷 Denní výkon</h2>
-<label>Zaměstnanec</label><input id="empName">
-<label>Objekt</label><select id="empObj"></select>
-<label>Odpracováno (h)</label><input id="empHours" type="number">
-<label>Posekáno (m²)</label><input id="empArea" type="number">
-<label>Ujeto (km)</label><input id="empKm" type="number">
-<button class="success" onclick="saveWork()">Uložit výkon</button>
+<!-- Custom Modal pro zobrazení LLM výstupu -->
+<div id="aiModal" class="ai-modal-overlay" style="display:none;">
+    <div class="ai-modal-content">
+        <button class="panel-close-btn" onclick="closeModal()"><i class="fas fa-times"></i></button>
+        <h2 id="aiModalTitle" class="text-xl font-bold mb-4"></h2>
+        <div id="aiModalBody" class="ai-modal-body">
+            <!-- Content and spinner go here -->
+        </div>
+        <div id="aiModalSources" class="text-xs text-muted mt-4 border-t border-gray-700 pt-2" style="display: none;">
+            <!-- Sources go here if using search grounding -->
+        </div>
+    </div>
 </div>
 
-<div class="section">
-<h2>💰 Finance</h2>
-<label>Příjem (Kč)</label><input id="finIn" type="number">
-<label>Náklad (Kč)</label><input id="finOut" type="number">
-<button class="primary" onclick="saveFinance()">Uložit finance</button>
-<div class="small">Automatický výpočet zisku</div>
-</div>
-
-<div class="section">
-<h2>📋 Evidence</h2>
-<table class="table"><tbody id="logTable"></tbody></table>
-</div>
-</div>
-
-<!-- Leaflet knihovny -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
-
 <script>
-// Spuštění aplikace
-console.log('Inicializace aplikace');
+// --- GLOBÁLNÍ DATA A PROMĚNNÉ ---
 
-// Datový model vodárenských objektů
-const objects=[
- {o:"PI",n:"VDJ Amerika II",k:"I.",bm:293,v:3303,lat:49.305131,lon:14.166126},
- {o:"ST",n:"VDJ Drahonice",k:"I.",bm:376,v:5953,lat:49.202902,lon:14.063713},
- {o:"ST",n:"VDJ Vodňany",k:"I.",bm:252,v:1594,lat:49.16455,lon:14.177836},
- {o:"CB",n:"VDJ Hlavatce",k:"",bm:424,v:7968,lat:49.063584,lon:14.267751},
- {o:"PT",n:"VDJ Šibeniční vrch I",k:"I.",bm:245,v:1835,lat:49.025083,lon:13.994111},
- {o:"PT",n:"ÚV Husinecka přehrada",k:"",bm:703,v:4908,lat:49.034362,lon:13.99683},
- {o:"PT",n:"VDJ Šibeniční vrch II",k:"I.",bm:340,v:3206,lat:49.02671,lon:13.994001},
- {o:"PI",n:"VDJ Zálužany",k:"",bm:299,v:2350,lat:49.552857,lon:14.083381},
- {o:"PT",n:"VDJ Ptáčník",k:"II.",bm:239,v:1070,lat:49.066147,lon:14.186844},
- {o:"CB",n:"VDJ Zdoba",k:"II.",bm:225,v:15523,lat:49.212422,lon:14.338095},
- {o:"CK",n:"VDJ Domoradice",k:"I.",bm:450,v:4148,lat:48.829651,lon:14.326564},
- {o:"CK",n:"VDJ Horní Brána",k:"I.",bm:187,v:1665,lat:48.80797,lon:14.329352},
- {o:"CK",n:"VDJ Netřebice",k:"I.",bm:136,v:877,lat:48.783277,lon:14.456447},
- {o:"CK",n:"VDJ Plešivec",k:"I.",bm:119,v:975,lat:48.802231,lon:14.304933},
- {o:"CB",n:"VDJ Doudleby",k:"II.",bm:79,v:413,lat:48.888896,lon:14.480271},
- {o:"CB",n:"VDJ Jankov",k:"I.",bm:106,v:784,lat:48.968747,lon:14.301697},
- {o:"CB",n:"VDJ Hosín II",k:"I.",bm:399,v:4173,lat:49.030641,lon:14.501012},
- {o:"CB",n:"VDJ Chlum",k:"II.",bm:63,v:535,lat:49.096493,lon:14.388679},
- {o:"CB",n:"VDJ Chotýčany",k:"II.",bm:338,v:4775,lat:49.070748,lon:14.51946},
- {o:"CB",n:"VDJ Rudolfov III",k:"I.",bm:174,v:1868,lat:48.986207,lon:14.547076},
- {o:"CB",n:"VDJ Rimov - Vesce",k:"I.",bm:99,v:662,lat:48.847847,lon:14.466957},
- {o:"CB",n:"VDJ Hosin",k:"II.",bm:125,v:809,lat:49.013889,lon:14.450278},
- {o:"CB",n:"VDJ Včelná",k:"II.",bm:476,v:8660,lat:48.966389,lon:14.454722},
- {o:"CB",n:"VDJ Húry",k:"I.",bm:0,v:395,lat:49.058611,lon:14.481944},
- {o:"CB",n:"VDJ Chlumec",k:"II.",bm:110,v:811,lat:49.124766,lon:14.431321},
- {o:"CB",n:"VDJ Olešník",k:"I.",bm:117,v:380,lat:49.111103,lon:14.377766},
- {o:"CB",n:"ČS Bukovec",k:"I.",bm:300,v:4943,lat:48.881608,lon:14.449233},
- {o:"CB",n:"VDJ Heřman",k:"II.",bm:119,v:982,lat:48.909479,lon:14.499876},
- {o:"CB",n:"ČS Vidov u řeky",k:"II.",bm:212,v:2501,lat:48.950833,lon:14.479722},
- {o:"CB",n:"Vrt Vidov",k:"II.",bm:164,v:470,lat:48.924066,lon:14.489679},
- {o:"CB",n:"ÚV Plav",k:"I.",bm:1413,v:74777,lat:48.912611,lon:14.494018},
- {o:"TA",n:"VDJ Čekanice",k:"I.",bm:450,v:6344,lat:49.422197,lon:14.689896},
- {o:"TA",n:"VDJ Svatá Anna",k:"I.",bm:264,v:4192,lat:49.401133,lon:14.69864},
- {o:"TA",n:"VDJ Bezděčín",k:"I.",bm:169,v:1996,lat:49.323096,lon:14.628405},
- {o:"TA",n:"VDJ Milevsko",k:"I.",bm:129,v:823,lat:49.452521,lon:14.344102},
- {o:"TA",n:"VDJ Hodušín",k:"II.",bm:205,v:1708,lat:49.42967,lon:14.474214},
- {o:"TA",n:"VDJ Všechov",k:"I.",bm:199,v:1574,lat:49.430159,lon:14.623205},
- {o:"TA",n:"VDJ Zlukov",k:"II.",bm:184,v:1520,lat:49.196289,lon:14.736382},
- {o:"TA",n:"ÚV Tábor",k:"II.",bm:350,v:12262,lat:49.422872,lon:14.666426},
- {o:"TA",n:"ČS Sudoměřice",k:"I.",bm:220,v:2508,lat:49.28658,lon:14.547794},
- {o:"TA",n:"Provozní Vodojem Tábor",k:"II.",bm:155,v:1853,lat:49.424264,lon:14.666384}
+let objects = [
+    {n:"VDJ Amerika II",o:"PI",lat:49.305131,lon:14.166126},
+    {n:"VDJ Drahonice",o:"ST",lat:49.202902,lon:14.063713},
+    {n:"VDJ Vodňany",o:"ST",lat:49.16455,lon:14.177836},
+    {n:"VDJ Hlavatce",o:"CB",lat:49.063584,lon:14.267751},
+    {n:"VDJ Šibeniční vrch I",o:"PT",lat:49.025083,lon:13.994111},
+    {n:"ÚV Husinecka přehrada",o:"PT",lat:49.034362,lon:13.99683},
+    {n:"VDJ Šibeniční vrch II",o:"PT",lat:49.02671,lon:13.994001},
+    {n:"VDJ Zálužany",o:"PI",lat:49.552857,lon:14.083381},
+    {n:"VDJ Ptáčník",o:"PT",lat:49.066147,lon:14.186844},
+    {n:"VDJ Zdoba",o:"CB",lat:49.212422,lon:14.338095},
+    {n:"VDJ Domoradice",o:"CK",lat:48.829651,lon:14.326564},
+    {n:"VDJ Horní Brána",o:"CK",lat:48.80797,lon:14.329352},
+    {n:"VDJ Netřebice",o:"CK",lat:48.783277,lon:14.456447},
+    {n:"VDJ Plešivec",o:"CK",lat:48.802231,lon:14.304933},
+    {n:"VDJ Doudleby",o:"CB",lat:48.888896,lon:14.480271},
+    {n:"VDJ Jankov",o:"CB",lat:48.968747,lon:14.301697},
+    {n:"VDJ Hosín II",o:"CB",lat:49.030641,lon:14.501012},
+    {n:"VDJ Chlum",o:"CB",lat:49.096493,lon:14.388679},
+    {n:"VDJ Chotýčany",o:"CB",lat:49.070748,lon:14.51946},
+    {n:"VDJ Rudolfov III",o:"CB",lat:48.986207,lon:14.547076},
+    {n:"VDJ Rimov - Vesce",o:"CB",lat:48.847847,lon:14.466957},
+    {n:"VDJ Hosin",o:"CB",lat:49.033641,lon:14.492878},
+    {n:"VDJ Včelná",o:"CB",lat:48.924663,lon:14.463506},
+    {n:"VDJ Húry",o:"CB",lat:49.006417,lon:14.549815},
+    {n:"VDJ Chlumec",o:"CB",lat:49.124766,lon:14.431321},
+    {n:"VDJ Olešník",o:"CB",lat:49.111103,lon:14.377766},
+    {n:"ČS Bukovec",o:"CB",lat:48.881608,lon:14.449233},
+    {n:"VDJ Heřman",o:"CB",lat:48.909479,lon:14.499876},
+    {n:"ČS Vidov u řeky",o:"CB",lat:48.924157,lon:14.489619},
+    {n:"Vrt Vidov",o:"CB",lat:48.924066,lon:14.489679},
+    {n:"ÚV Plav",o:"CB",lat:48.912611,lon:14.494018},
+    {n:"VDJ Čekanice",o:"TA",lat:49.422197,lon:14.689896},
+    {n:"VDJ Svatá Anna",o:"TA",lat:49.401133,lon:14.69864},
+    {n:"VDJ Bezděčín",o:"TA",lat:49.323096,lon:14.628405},
+    {n:"VDJ Milevsko",o:"TA",lat:49.452521,lon:14.344102},
+    {n:"VDJ Hodušín",o:"TA",lat:49.42967,lon:14.474214},
+    {n:"VDJ Všechov",o:"TA",lat:49.430159,lon:14.623205},
+    {n:"VDJ Zlukov",o:"TA",lat:49.196289,lon:14.736382},
+    {n:"ÚV Tábor",o:"TA",lat:49.422872,lon:14.666426},
+    {n:"ČS Sudoměřice",o:"TA",lat:49.28658,lon:14.547794},
+    {n:"Provozní Vodojem Tábor",o:"TA",lat:49.424264,lon:14.666384}
 ];
 
-// Pracovní kopie dat po aplikaci filtrů
-let filtered=[...objects];
-console.log('Načteno objektů:', objects.length);
-
-// Inicializace mapy a základního pohledu
-const map=L.map('map').setView([49.1,14.4],9);
-console.log('Mapa inicializována');
-
-// Podkladová OpenStreetMap vrstva
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
-
-// Skupina pro kreslené objekty (měření)
-const drawn=new L.FeatureGroup();
-map.addLayer(drawn);
-
-// Ovládání kreslení vzdáleností a ploch
-map.addControl(new L.Control.Draw({
- draw:{polygon:true,polyline:true,rectangle:false,circle:false,marker:false},
- edit:{featureGroup:drawn}
-}));
-
-// Reakce na dokončení kreslení
-map.on(L.Draw.Event.CREATED,e=>{
- console.log('Vykreslen nový prvek');
- drawn.addLayer(e.layer)
+// Dynamické přidání travnatých ploch pro simulaci
+objects.forEach(obj => {
+    let base = obj.n.includes('VDJ') || obj.n.includes('ÚV') ? 2500 : 800;
+    obj.grass_m2 = base + Math.floor(Math.random() * 2000); // 800 až 4500 m²
 });
 
-// Reference na vykreslené markery
-let markers=[];
 
-// Vykreslení objektů na mapu
-function render(){
- console.log('Render objektů:', filtered.length);
- markers.forEach(m=>map.removeLayer(m));
- markers=[];
- filtered.forEach(d=>{
-  const c=d.s==='havarijní'?'#dc2626':d.s==='rizikový'?'#f59e0b':'#16a34a';
-  const m=L.circleMarker([d.lat,d.lon],{radius:8,color:c,fillOpacity:.9})
-   .addTo(map)
-   .bindPopup(`<b>${d.n}</b><br>Okres: ${d.o}<br>Stav: ${d.s}<br>Plocha: ${d.v.toLocaleString()} m²`);
-  markers.push(m)
- });
- updateStats()
-}
+let filtered = [...objects];
+let route = [];
+let routeLine;
+let markers = [];
+let drawnItems;
+let currentLocationMarker = null; // Pro sledování markeru polohy
 
-// Aplikace filtrů z UI
-function applyFilters(){
- const n=fName.value.toLowerCase();
- const o=fOkres.value;
- const s=fStav.value;
- filtered=objects.filter(d=>(!n||d.n.toLowerCase().includes(n))&&(o==='all'||d.o===o)&&(s==='all'||d.s===s));
- console.log('Aplikovány filtry', {n,o,s,results:filtered.length});
- render()
-}
+// Firestore proměnné
+let db;
+let auth;
+let userId = 'anonymous'; // Default
+let completionData = {}; // {objectName: {isCompleted: bool, grass_m2: number}}
+let totalGrassArea = 0;
+let remainingGrassArea = 0;
 
-// Přepočet a zobrazení statistik
-function updateStats(){
- stObj.textContent=filtered.length;
- stArea.textContent=(+localStorage.area||0).toLocaleString();
- stKm.textContent=(+localStorage.km||0).toLocaleString();
- stCash.textContent=(+localStorage.cash||0).toLocaleString()+" Kč";
- console.log('Statistiky aktualizovány')
-}
+// --- MAPA A VRSTVY ---
 
-// Uložení denního výkonu zaměstnance
-function saveWork(){
- console.log('Ukládám výkon', {emp:empName.value,area:empArea.value,km:empKm.value});
- localStorage.area=(+localStorage.area||0)+(+empArea.value||0);
- localStorage.km=(+localStorage.km||0)+(+empKm.value||0);
- appendLog(`Výkon: ${empName.value} – ${empArea.value} m², ${empKm.value} km`);
- render()
-}
-
-// Uložení finančního záznamu
-function saveFinance(){
- const z=(+finIn.value||0)-(+finOut.value||0);
- console.log('Ukládám finance', {in:finIn.value,out:finOut.value,profit:z});
- localStorage.cash=(+localStorage.cash||0)+z;
- appendLog(`Finance: zisk ${z.toLocaleString()} Kč`);
- render()
-}
-
-// Přidání záznamu do evidence
-function appendLog(t){
- console.log('Záznam logu:', t);
- const tb=document.getElementById('logTable');
- tb.innerHTML=`<tr><td>${new Date().toLocaleString()}</td><td>${t}</td></tr>`+tb.innerHTML
-}
-
-// Export seznamu objektů do CSV
-function exportCSV(){
- console.log('Export CSV');
- const rows=['Nazev;Okres;Stav;Lat;Lon;Plocha_m2'];
- objects.forEach(d=>rows.push(`${d.n};${d.o};${d.s};${d.lat};${d.lon};${d.v}`));
- const blob=new Blob(['\uFEFF'+rows.join('\n')],{type:'text/csv'});
- const a=document.createElement('a');
- a.href=URL.createObjectURL(blob);
- a.download='vodarenske_arealy.csv';
- a.click()
-}
-
-// Naplnění filtrů a výběrů daty
-[...new Set(objects.map(o=>o.o))].forEach(o=>{
- console.log('Přidán okres do filtru:',o);
- fOkres.innerHTML+=`<option>${o}</option>`
+const defaultTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 20,
+    attribution: '&copy; OpenStreetMap contributors'
 });
 
-objects.forEach(o=>{
- console.log('Přidán objekt do výběru:',o.n);
- empObj.innerHTML+=`<option>${o.n}</option>`
+const esriTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
 });
 
-// První vykreslení aplikace
-render();
+const map = L.map('map', { 
+    preferCanvas: true,
+    layers: [defaultTileLayer]
+}).setView([49.1, 14.4], 9);
+
+let currentTileLayer = defaultTileLayer;
+
+// --- FIREBASE/FIRESTORE LOGIKA ---
+
+async function initializeFirebase() {
+    try {
+        setLogLevel('debug');
+        
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        if (!firebaseConfig.apiKey) {
+            console.warn("Firebase config not found. Running without persistence.");
+            document.getElementById('grass-loading-status').textContent = "Upozornění: Databáze není připojena.";
+            calculateAndDisplayGrassSummary(); // Spočítat jen ze statických dat
+            return;
+        }
+
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        // Přihlášení uživatele
+        if (initialAuthToken) {
+            await signInWithCustomToken(auth, initialAuthToken);
+        } else {
+            await signInAnonymously(auth);
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userId = user.uid;
+                document.getElementById('grass-loading-status').textContent = `Uživatel: ${userId.substring(0, 8)}... (Připojeno)`;
+                listenForCompletionUpdates(appId, userId);
+            } else {
+                console.error("Firebase Auth failed.");
+                document.getElementById('grass-loading-status').textContent = "Chyba: Přihlášení do databáze selhalo.";
+            }
+        });
+
+    } catch (e) {
+        console.error("Chyba inicializace Firebase:", e);
+        document.getElementById('grass-loading-status').textContent = "Chyba inicializace Firebase.";
+    }
+}
+
+function listenForCompletionUpdates(appId, currentUserId) {
+    const collPath = `/artifacts/${appId}/users/${currentUserId}/completionStatus`;
+    const q = query(collection(db, collPath));
+    
+    // Zastavit starý listener, pokud existuje (není potřeba, protože se volá jen jednou po auth)
+
+    onSnapshot(q, (snapshot) => {
+        const changes = snapshot.docChanges();
+        
+        // Aktualizace completionData
+        changes.forEach((change) => {
+            if (change.type === "added" || change.type === "modified") {
+                const data = change.doc.data();
+                completionData[data.name] = {
+                    isCompleted: data.isCompleted,
+                    grass_m2: data.grass_m2 
+                };
+            } else if (change.type === "removed") {
+                delete completionData[change.doc.id];
+            }
+        });
+
+        // Musíme zajistit, že všechna statická data jsou v completionData,
+        // a pokud ne, inicializovat je.
+        initializeMissingCompletionData();
+        
+        // Přepočítat a vykreslit data
+        calculateAndDisplayGrassSummary();
+        render(); // Vykreslí markery s novým stavem
+    }, (error) => {
+        console.error("Firestore snapshot chyba:", error);
+        document.getElementById('grass-loading-status').textContent = "Chyba databáze (smazaná data).";
+    });
+}
+
+function initializeMissingCompletionData() {
+    const batch = writeBatch(db);
+    let needsCommit = false;
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const collPath = `/artifacts/${appId}/users/${userId}/completionStatus`;
+
+    objects.forEach(obj => {
+        if (!completionData[obj.n]) {
+            // Inicializuj chybějící data lokálně i v batchi
+            completionData[obj.n] = { isCompleted: false, grass_m2: obj.grass_m2 };
+            
+            const docRef = doc(db, collPath, obj.n.replace(/ /g, '_')); // Použijeme název jako ID, ale nahradíme mezery
+            batch.set(docRef, { 
+                name: obj.n,
+                isCompleted: false,
+                grass_m2: obj.grass_m2,
+                // Pro jednodušší dotazování
+                okres: obj.o, 
+            });
+            needsCommit = true;
+        }
+    });
+
+    if (needsCommit) {
+        batch.commit().catch(e => console.error("Chyba při inicializaci dat:", e));
+    }
+}
+
+
+function calculateAndDisplayGrassSummary() {
+    totalGrassArea = 0;
+    remainingGrassArea = 0;
+
+    // Procházíme statický seznam objektů, abychom zajistili, že pokryjeme vše
+    objects.forEach(obj => {
+        const status = completionData[obj.n];
+        const area = obj.grass_m2 || 0; 
+        
+        totalGrassArea += area;
+
+        if (!status || status.isCompleted === false) {
+            remainingGrassArea += area;
+        }
+    });
+
+    // Aktualizace UI
+    document.getElementById('stGrassTotal').textContent = totalGrassArea.toLocaleString('cs-CZ') + ' m²';
+    document.getElementById('stGrassRemaining').textContent = remainingGrassArea.toLocaleString('cs-CZ') + ' m²';
+
+    // Aktualizace barvy based on completion
+    document.getElementById('stGrassRemaining').style.color = remainingGrassArea > 0 ? 'var(--accent-secondary)' : 'var(--completed)';
+    document.getElementById('stGrassTotal').style.color = 'var(--accent-primary)';
+}
+
+window.toggleCompletionStatus = async function(name) {
+    if (!db || !userId) {
+        showModal("Chyba Databáze", "Databáze není připojena, nelze aktualizovat stav dokončení.");
+        return;
+    }
+    
+    const obj = objects.find(o => o.n === name);
+    if (!obj) return;
+    
+    const currentStatus = completionData[name] ? completionData[name].isCompleted : false;
+    const newStatus = !currentStatus;
+    
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const docRef = doc(db, `/artifacts/${appId}/users/${userId}/completionStatus`, name.replace(/ /g, '_'));
+
+    try {
+        // Pouze setDoc, protože dokument již byl inicializován
+        await setDoc(docRef, { 
+            name: obj.n,
+            isCompleted: newStatus,
+            grass_m2: obj.grass_m2,
+            okres: obj.o,
+        }, { merge: true });
+        
+        // Zde se nemusí znovu volat render/calculate, protože to zařídí onSnapshot
+
+    } catch (e) {
+        showModal("Chyba Zápisu", `Nepodařilo se aktualizovat stav v databázi: ${e.message}`);
+        console.error("Firestore write error:", e);
+    }
+}
+
+
+// --- MAPA A INTERAKCE ---
+
+function toggleHDMap() {
+    if (currentTileLayer === defaultTileLayer) {
+        map.removeLayer(defaultTileLayer);
+        map.addLayer(esriTileLayer);
+        currentTileLayer = esriTileLayer;
+    } else {
+        map.removeLayer(esriTileLayer);
+        map.addLayer(defaultTileLayer);
+        currentTileLayer = defaultTileLayer;
+    }
+}
+
+function toggleTheme() {
+    const body = document.getElementById('appBody');
+    const isRed = body.classList.toggle('theme-red');
+    
+    const topBar = document.querySelector('.top');
+    const accentPrimary = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary');
+    topBar.style.borderColor = accentPrimary;
+
+    if (routeLine) {
+        routeLine.setStyle({ color: accentPrimary });
+    }
+    
+    render();
+}
+
+function removeCurrentLocationMarker() {
+    if (currentLocationMarker) {
+        map.removeLayer(currentLocationMarker);
+        currentLocationMarker = null;
+    }
+}
+
+function geoLocate() {
+    removeCurrentLocationMarker(); // Odebrání předchozího markeru
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                map.setView([lat, lon], 14);
+                
+                const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-secondary');
+                
+                currentLocationMarker = L.marker([lat, lon], {
+                    icon: L.divIcon({
+                        className: 'current-location-marker',
+                        html: `<i class="fas fa-crosshairs fa-beat" style="color:${accentColor}; font-size: 24px;"></i>`,
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    })
+                }).addTo(map).bindPopup('Aktuální poloha').openPopup();
+            },
+            () => {
+                console.error('Nepodařilo se zjistit Vaši polohu.');
+            }
+        );
+    } else {
+        console.warn('Váš prohlížeč nepodporuje geolokaci.');
+    }
+}
+
+
+// --- TRASOVÁNÍ, FILTRY A VYKRESLOVÁNÍ ---
+
+function getPopupContent(data) {
+    const isInRoute = route.includes(data);
+    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary');
+    
+    const status = completionData[data.n] || { isCompleted: false, grass_m2: data.grass_m2 };
+    const isCompleted = status.isCompleted;
+    const completionColor = isCompleted ? 'var(--completed)' : accentColor;
+    const completionText = isCompleted ? 'Odebrat Dokončení (Dokončeno)' : 'Označit jako Dokončené';
+    const completionIcon = isCompleted ? 'fas fa-undo' : 'fas fa-check-double';
+    
+    return `
+        <div style="color: #0b1220; font-family: sans-serif; min-width: 180px;">
+            <h3 style="margin: 0 0 5px; color: ${accentColor};">${data.n}</h3>
+            <p style="margin: 0 0 5px; font-size: 11px;">
+                Okres: <strong>${data.o}</strong><br>
+                Travnatá plocha: <strong>${data.grass_m2.toLocaleString('cs-CZ')} m²</strong>
+            </p>
+            
+            <!-- Tlačítko pro Sledování Dokončení -->
+            <button onclick="window.toggleCompletionStatus('${data.n}')" 
+                    style="background: ${isCompleted ? completionColor : '#020617'}; 
+                           color: ${isCompleted ? 'white' : completionColor}; 
+                           border: 1px solid ${completionColor}; 
+                           padding: 6px 10px; border-radius: 6px; cursor: pointer; margin-top: 5px; width: 100%; font-weight: bold;">
+                <i class="${completionIcon}"></i> ${completionText}
+            </button>
+            
+            <hr style="border-color: #ccc; margin: 8px 0;">
+            
+            <!-- Tlačítka pro Trasu -->
+            ${isInRoute 
+                ? `<button onclick="window.toggleRoutePoint('${data.n}')" style="background: ${accentColor}; color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; margin-top: 5px; width: 100%; font-weight: bold;"><i class="fas fa-minus-circle"></i> Odebrat z Trasy</button>`
+                : `<button onclick="window.toggleRoutePoint('${data.n}')" style="background: #0f172a; color: white; border: 1px solid ${accentColor}; padding: 5px 10px; border-radius: 6px; cursor: pointer; margin-top: 5px; width: 100%;"><i class="fas fa-plus-circle"></i> Přidat do Trasy</button>`
+            }
+            <button onclick="window.startRouteFromPoint('${data.n}')" style="background: none; color: ${accentColor}; border: 1px solid ${accentColor}; padding: 5px 10px; border-radius: 6px; cursor: pointer; margin-top: 8px; width: 100%;"><i class="fas fa-play"></i> Zvolit jako Počáteční Bod</button>
+        </div>
+    `;
+}
+
+function render() {
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
+    
+    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary');
+    const completedColor = getComputedStyle(document.documentElement).getPropertyValue('--completed');
+
+    filtered.forEach(d => {
+        const isCompleted = completionData[d.n] ? completionData[d.n].isCompleted : false;
+        const markerColor = isCompleted ? completedColor : accentColor;
+        
+        const m = L.circleMarker([d.lat, d.lon], {
+            radius: isCompleted ? 10 : 8,
+            color: isCompleted ? completedColor : accentColor,
+            fillColor: isCompleted ? completedColor : accentColor,
+            fillOpacity: isCompleted ? 0.9 : 0.8,
+            weight: 2
+        }).addTo(map);
+
+        m.data = d;
+        m.bindPopup(() => getPopupContent(d));
+
+        // Nastavení třídy pro outline
+        m.on('add', function() {
+            const markerElement = m.getElement();
+            if (markerElement) {
+                if (isCompleted) {
+                    markerElement.classList.add('completed-area');
+                } else {
+                    markerElement.classList.remove('completed-area');
+                }
+                
+                // Aktualizace třídy pro zvýraznění trasy
+                if (route.includes(d)) {
+                    markerElement.classList.add('route-active');
+                } else {
+                    markerElement.classList.remove('route-active');
+                }
+            }
+        });
+
+        const markerElement = m.getElement();
+        if (markerElement) {
+            // Při rychlém přepnutí/renderu, kdy už je element v DOM
+             if (isCompleted) {
+                markerElement.classList.add('completed-area');
+            } else {
+                markerElement.classList.remove('completed-area');
+            }
+            if (route.includes(d)) {
+                markerElement.classList.add('route-active');
+            } else {
+                markerElement.classList.remove('route-active');
+            }
+        }
+        
+        markers.push(m);
+    });
+    
+    document.getElementById('stObj').textContent = filtered.length;
+    updateRouteLine();
+}
+
+window.toggleRoutePoint = function(name) {
+    const data = objects.find(o => o.n === name);
+    if (!data) return;
+    
+    const index = route.indexOf(data);
+
+    if (index === -1) {
+        route.push(data);
+    } else {
+        route.splice(index, 1);
+    }
+
+    render();
+}
+
+window.startRouteFromPoint = function(name) {
+    const data = objects.find(o => o.n === name);
+    if (!data) return;
+
+    route = [data];
+    map.closePopup();
+    render();
+}
+
+function updateRouteLine() {
+    if (routeLine) {
+        map.removeLayer(routeLine);
+    }
+
+    let km = 0;
+    if (route.length > 1) {
+        const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary');
+        const points = route.map(p => [p.lat, p.lon]);
+        
+        routeLine = L.polyline(points, {
+            color: accentColor,
+            weight: 5,
+            opacity: 0.8,
+            dashArray: '10, 5'
+        }).addTo(map);
+
+        for (let i = 1; i < route.length; i++) {
+            km += map.distance([route[i-1].lat, route[i-1].lon], [route[i].lat, route[i].lon]);
+        }
+    }
+    document.getElementById('stKm').textContent = (km / 1000).toFixed(1);
+}
+
+function clearRoute() {
+    route = [];
+    if (routeLine) {
+        map.removeLayer(routeLine);
+        routeLine = null;
+    }
+    removeCurrentLocationMarker(); // Odstranění markeru polohy
+    render();
+}
+
+function startRoute() {
+    clearRoute();
+}
+
+function applyFilters() {
+    const nameFilter = document.getElementById('fName').value.toLowerCase();
+    const okresFilter = document.getElementById('fOkres').value;
+
+    filtered = objects.filter(d => 
+        (!nameFilter || d.n.toLowerCase().includes(nameFilter)) &&
+        (okresFilter === 'all' || d.o === okresFilter)
+    );
+    render();
+}
+
+function togglePanel() {
+    document.getElementById('filterPanel').classList.toggle('open');
+}
+
+
+// --- GEMINI API LOGIKA ---
+
+const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent";
+const apiKey = ""; 
+
+function showModal(title, content, sources = []) {
+    document.getElementById('aiModalTitle').textContent = title;
+    document.getElementById('aiModalBody').innerHTML = content;
+    
+    const sourcesDiv = document.getElementById('aiModalSources');
+    if (sources.length > 0) {
+        sourcesDiv.style.display = 'block';
+        sourcesDiv.innerHTML = '<strong>Zdroje pro Ověření:</strong><br>' + sources.map(s => 
+            `<a href="${s.uri}" target="_blank" class="text-xs text-blue-400 hover:text-blue-200 block">${s.title}</a>`
+        ).join('');
+    } else {
+        sourcesDiv.style.display = 'none';
+    }
+    
+    document.getElementById('aiModal').style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('aiModal').style.display = 'none';
+}
+
+async function fetchWithBackoff(url, options, maxRetries = 5) {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            const response = await fetch(url, options);
+            if (!response.ok) {
+                if (response.status === 429 && attempt < maxRetries - 1) {
+                    const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue; 
+                }
+                throw new Error(`API call failed with status: ${response.status}`);
+            }
+            return response;
+        } catch (error) {
+            if (attempt === maxRetries - 1) {
+                throw error;
+            }
+            const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+}
+
+window.generateRoutePlan = async function() {
+    if (route.length < 2) {
+        showModal("Chyba Plánu Trasy", `
+            <p>Pro generování protokolu inspekce musí trasa obsahovat minimálně dva objekty.<br>
+            Aktuálně máte vybráno: <strong>${route.length}</strong> objektů.</p>
+        `);
+        return;
+    }
+
+    showModal("Generování Protokolu Inspekce...", '<div class="spinner"></div>');
+
+    try {
+        const km = parseFloat(document.getElementById('stKm').textContent);
+        
+        const routeList = route.map((d, i) => 
+            `${i + 1}. ${d.n} (${d.o}) - Typ: ${d.n.includes('VDJ') ? 'Vodojem (VDJ)' : d.n.includes('ÚV') ? 'Úpravna Vody (ÚV)' : d.n.includes('ČS') ? 'Čerpací Stanice (ČS)' : 'Ostatní'}`
+        ).join('\n');
+
+        const systemPrompt = `Jsi profesionální plánovač údržby a terénních inspekcí vodohospodářských zařízení v České republice. Tvým úkolem je na základě seznamu navštívených bodů a celkové vzdálenosti vytvořit stručný, formátovaný a akční plán inspekčního protokolu pro technika. Protokol by měl obsahovat tyto sekce:
+1. **Přehled Trasy:** Celková vzdálenost, počet bodů a celkový odhadovaný čas trvání inspekce (čistý čas práce na místě bez cesty). Předpokládej 45-60 minut na ÚV, 30-45 minut na VDJ, a 20-30 minut na ČS.
+2. **Klíčové Priority:** Navrhni, které zařízení vyžadují detailnější kontrolu a proč (např. ÚV jako kritické body).
+3. **Kontrolní Úkony:** Vytvoř krátký kontrolní seznam pro každý typ zařízení (VDJ, ÚV, ČS) - maximálně 3 nejdůležitější úkony pro každý typ (např. kontrola oplocení, měření průtoku, vizuální kontrola armatur, apod.).
+4. **Doporučení pro Optimalizaci:** Stručné doporučení k případné optimalizaci trasy nebo zdrojů.
+Odpovídej pouze v češtině. Použij Markdown pro formátování, jako jsou seznamy a tučné písmo.`;
+
+        const userQuery = `Naplánovaná trasa zahrnuje ${route.length} objektů s celkovou vzdáleností ${km.toFixed(1)} km. Body trasy v pořadí:
+
+${routeList}
+
+Vygeneruj inspekční protokol podle daných pokynů.`;
+
+
+        const payload = {
+            contents: [{ parts: [{ text: userQuery }] }],
+            tools: [{ "google_search": {} }],
+            systemInstruction: {
+                parts: [{ text: systemPrompt }]
+            },
+        };
+
+        const response = await fetchWithBackoff(`${API_URL}?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        
+        const candidate = result.candidates?.[0];
+        let generatedText = "Chyba: Nepodařilo se vygenerovat text. Zkuste to prosím znovu.";
+        let sources = [];
+
+        if (candidate && candidate.content?.parts?.[0]?.text) {
+            generatedText = candidate.content.parts[0].text;
+
+            const groundingMetadata = candidate.groundingMetadata;
+            if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                sources = groundingMetadata.groundingAttributions
+                    .map(attribution => ({
+                        uri: attribution.web?.uri,
+                        title: attribution.web?.title,
+                    }))
+                    .filter(source => source.uri && source.title);
+            }
+        }
+        
+        showModal("✨ Protokol Inspekce - Generováno AI", generatedText, sources);
+
+    } catch (error) {
+        showModal("Chyba API", `
+            <p>Nastala chyba při komunikaci s AI službou. Zkuste to prosím znovu.<br>
+            Detail chyby: ${error.message || 'Neznámá chyba'}</p>
+        `);
+    }
+}
+
+
+// --- LEAFLET.DRAW INTEGRACE ---
+function initializeDrawControls() {
+    drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+
+    const drawControl = new L.Control.Draw({
+        edit: {
+            featureGroup: drawnItems,
+            poly: { allowIntersection: false }
+        },
+        draw: {
+            polyline: {
+                metric: true,
+                shapeOptions: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--accent-secondary'),
+                    weight: 3
+                }
+            },
+            polygon: { showArea: true, allowIntersection: false },
+            rectangle: { showArea: true },
+            circle: true,
+            marker: true,
+            circlemarker: false
+        }
+    });
+
+    drawControl.addTo(map);
+    const drawToolbarContainer = document.querySelector('.leaflet-draw');
+    if (drawToolbarContainer) {
+        drawToolbarContainer.style.display = 'none';
+    }
+
+    document.getElementById('draw-tool-btn').addEventListener('click', () => {
+        const drawToolbar = document.querySelector('.leaflet-draw-toolbar');
+        if (drawToolbar) {
+            const isVisible = drawToolbarContainer.style.display !== 'none';
+            drawToolbarContainer.style.display = isVisible ? 'none' : 'block';
+            
+            if (!isVisible) {
+                const buttonRect = document.getElementById('draw-tool-btn').getBoundingClientRect();
+                drawToolbarContainer.style.position = 'fixed';
+                drawToolbarContainer.style.top = `${buttonRect.top + buttonRect.height + 5}px`;
+                drawToolbarContainer.style.left = '10px';
+                drawToolbarContainer.style.zIndex = '1000';
+            }
+        }
+    });
+
+    map.on(L.Draw.Event.CREATED, function (e) {
+        const type = e.layerType;
+        const layer = e.layer;
+        
+        if (type === 'polyline') {
+            const distance = L.GeometryUtil.length(layer);
+            layer.bindPopup(`<strong>Vzdálenost:</strong> ${(distance / 1000).toFixed(2)} km`).openPopup();
+        }
+        if (type === 'polygon' || type === 'rectangle') {
+             const area = L.GeometryUtil.geodesicArea(layer);
+            layer.bindPopup(`<strong>Plocha:</strong> ${(area / 1000000).toFixed(2)} km²`).openPopup();
+        }
+
+        drawnItems.addLayer(layer);
+    });
+}
+
+// --- INICIALIZACE ---
+
+[...new Set(objects.map(o => o.o))].forEach(o => {
+    document.getElementById('fOkres').innerHTML += `<option value="${o}">${o}</option>`;
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    initializeFirebase(); // Inicializace DB
+    // render() je voláno po inicializaci databáze v listenForCompletionUpdates
+    initializeDrawControls();
+});
+
+window.closeModal = closeModal;
+
 </script>
 </body>
 </html>
-
