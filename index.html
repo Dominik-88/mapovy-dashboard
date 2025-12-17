@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JVS e-book</title>
-    
+    <title>• JVS (e-book) • Dominik Schmied</title>
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
     <style>
         :root {
@@ -16,89 +16,152 @@
             --bg-dark: #1a1a1a;
             --panel-bg: #2d2d2d;
         }
-        body { margin: 0; padding: 0; font-family: sans-serif; background: var(--bg-dark); color: white; overflow: hidden; }
-        
-        /* Horní lišta */
-        .top { 
-            height: 70px; 
-            background: #111; 
-            display: flex; 
-            align-items: center; 
-            padding: 0 20px; 
-            border-bottom: 2px solid var(--accent-primary); 
-        }
-        .top h1 { margin: 0; font-size: 24px; color: var(--accent-primary); display: inline-block; vertical-align: middle; }
-        
-        /* Mapa */
-        #map { height: calc(100vh - 70px); width: 100%; position: relative; }
-        
-        /* Nástroje vlevo */
-        .tools-left { 
-            position: absolute; 
-            top: 90px; 
-            left: 10px; 
-            z-index: 1000; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 10px; 
-        }
-        .tool-btn { 
-            background: var(--panel-bg); 
-            border: 1px solid #444; 
-            color: white; 
-            padding: 12px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-size: 18px;
-            transition: 0.3s; 
-        }
-        .tool-btn:hover { background: #444; border-color: var(--accent-primary); }
 
-        /* Panel vpravo */
-        .panel { 
-            position: absolute; 
-            top: 90px; 
-            right: 10px; 
-            width: 320px; 
-            background: var(--panel-bg); 
-            z-index: 1000; 
-            padding: 20px; 
-            border-radius: 12px; 
-            border: 1px solid #444; 
-            max-height: 80vh; 
-            overflow-y: auto; 
-            display: none; 
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: sans-serif;
+            background-color: var(--bg-dark);
+            color: white;
+            overflow: hidden;
         }
-        .section { margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 15px; }
-        .section h2 { font-size: 16px; margin-bottom: 10px; color: var(--accent-primary); }
+
+        /* Horní lišta */
+        .top {
+            height: 70px;
+            background: #111;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            border-bottom: 2px solid var(--accent-primary);
+        }
+
+        .top div {
+            display: flex;
+            align-items: center;
+        }
+
+        .top h1 {
+            margin: 0;
+            font-size: 22px;
+            color: var(--accent-primary);
+        }
+
+        /* Mapa */
+        #map {
+            height: calc(100vh - 70px);
+            width: 100%;
+            z-index: 1;
+        }
+
+        /* Levá lišta s tlačítky */
+        .tools-left {
+            position: absolute;
+            top: 90px;
+            left: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .tool-btn {
+            background: var(--panel-bg);
+            border: 1px solid #444;
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: 0.2s;
+        }
+
+        .tool-btn:hover {
+            background: #444;
+            border-color: var(--accent-primary);
+        }
+
+        /* Pravý panel s filtry */
+        .panel {
+            position: absolute;
+            top: 90px;
+            right: 20px;
+            width: 320px;
+            background: var(--panel-bg);
+            z-index: 1000;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #444;
+            max-height: 80vh;
+            overflow-y: auto;
+            display: none; /* Skryto v základu, otevírá se tlačítkem filtru */
+        }
+
+        .panel-close-btn {
+            float: right;
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #444;
+        }
+
+        .section h2 {
+            font-size: 16px;
+            margin: 0 0 12px 0;
+            color: var(--accent-primary);
+        }
+
+        label { display: block; font-size: 12px; margin-bottom: 5px; color: #aaa; }
+        
+        input, select {
+            width: 100%;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .card { background: #1a1a1a; padding: 10px; border-radius: 8px; text-align: center; }
         .card .v { font-size: 18px; font-weight: bold; }
-        .card .l { font-size: 10px; color: #aaa; text-transform: uppercase; margin-top: 5px; }
-        
-        input, select { width: 100%; background: #1a1a1a; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; margin-bottom: 10px; box-sizing: border-box; }
-        .panel-close-btn { float: right; cursor: pointer; background: none; border: none; color: #888; font-size: 20px; }
-        
+        .card .l { font-size: 10px; color: #888; text-transform: uppercase; margin-top: 4px; }
+
         /* AI Modal */
-        .ai-modal-overlay { 
-            position: fixed; 
-            top: 0; left: 0; 
-            width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.85); 
-            z-index: 2000; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
+        .ai-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        .ai-modal-content { 
-            background: var(--panel-bg); 
-            padding: 30px; 
-            border-radius: 15px; 
-            width: 90%; 
-            max-width: 600px; 
-            border: 1px solid var(--accent-primary); 
+        .ai-modal-content {
+            background: var(--panel-bg);
+            padding: 25px;
+            border-radius: 15px;
+            width: 85%;
+            max-width: 600px;
+            border: 1px solid var(--accent-primary);
             position: relative;
         }
+
         .text-xs { font-size: 12px; }
         .mt-3 { margin-top: 12px; }
         .text-center { text-align: center; }
@@ -109,9 +172,9 @@
 
 <div class="top">
     <div>
-        <img src="https://drive.google.com/uc?export=view&id=1RjoeJUvpCYrXB-E70Kmm0hgpNZM7wEnD" alt="JVS Logo" style="height: 40px; margin-right: 10px; vertical-align: middle;">
+        <img src="https://drive.google.com/uc?export=view&id=1RjoeJUvpCYrXB-E70Kmm0hgpNZM7wEnD" alt="JVS Logo" style="height: 40px; margin-right: 15px;">
         <h1>• JVS (e-book) •</h1>
-        <span style="font-size: 20px; font-weight: bold; margin-left: 10px;">• Dominik Schmied •</span>
+        <span style="font-size: 18px; font-weight: bold; margin-left: 15px;">• Dominik Schmied •</span>
     </div>
 </div>
 
@@ -130,6 +193,7 @@
 
 <div class="panel" id="filterPanel">
     <button class="panel-close-btn" onclick="togglePanel()"><i class="fas fa-times"></i></button>
+    
     <div class="section">
         <h2>🔍 Filtr Objektů</h2>
         <label for="fName">Název</label>
@@ -148,10 +212,10 @@
      
     <div class="section">
         <h2>🌳 Údržba Travnatých Plocha</h2>
-        <div id="grass-loading-status" class="text-center text-xs" style="color: #fbbf24; margin-bottom: 8px;">Upozornění: Databáze není připojena.</div>
+        <div id="grass-loading-status" class="text-center text-xs" style="color: #fbbf24; margin-bottom: 10px;">Upozornění: Databáze není připojena.</div>
         <div class="grid" style="grid-template-columns: 1fr;">
             <div class="card"><div class="v" id="stGrassTotal" style="color: var(--accent-primary);">498 093 m²</div><div class="l">Celková plocha (m²)</div></div>
-            <div class="card" style="margin-top:10px;"><div class="v" id="stGrassRemaining" style="color: var(--accent-secondary);">498 093 m²</div><div class="l">Zbývá dokončit (m²)</div></div>
+            <div class="card" style="margin-top: 10px;"><div class="v" id="stGrassRemaining" style="color: var(--accent-secondary);">498 093 m²</div><div class="l">Zbývá dokončit (m²)</div></div>
         </div>
     </div>
      
@@ -180,11 +244,9 @@
     <div class="ai-modal-content">
         <button class="panel-close-btn" onclick="closeModal()"><i class="fas fa-times"></i></button>
         <h2 id="aiModalTitle" class="text-xl font-bold mb-4">AI Plánovač tras</h2>
-        <div id="aiModalBody" class="ai-modal-body">
-            Zpracovávám požadavek přes AI...
+        <div id="aiModalBody">
+            Generuji nejefektivnější plán inspekce...
         </div>
-        <div id="aiModalSources" class="text-xs mt-4" style="display: none; border-top: 1px solid #444; pt-2;">
-            </div>
     </div>
 </div>
 
@@ -193,37 +255,45 @@
 <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 
 <script>
-    // Inicializace mapy
-    var map = L.map('map').setView([49.027, 14.470], 9);
+    // 1. Inicializace mapy (střed Jižní Čechy)
+    var map = L.map('map').setView([49.0, 14.5], 9);
 
-    // Přidání mapové vrstvy (OSM)
+    // 2. Mapové podklady (OpenStreetMap)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Funkce pro otevírání/zavírání panelu
+    // 3. Funkce pro ovládání panelů a modálů
     function togglePanel() {
-        const panel = document.getElementById('filterPanel');
+        var panel = document.getElementById('filterPanel');
         panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
     }
 
-    // AI Modal funkce
     function generateRoutePlan() {
         document.getElementById('aiModal').style.display = 'flex';
     }
-    
+
     function closeModal() {
         document.getElementById('aiModal').style.display = 'none';
     }
 
-    // Prázdné funkce pro zachování funkčnosti tlačítek (zde doplníte logiku)
-    function applyFilters() { console.log("Filtrování..."); }
-    function startRoute() { console.log("Start trasy..."); }
-    function clearRoute() { console.log("Čištění..."); }
-    function toggleHDMap() { console.log("Změna mapy..."); }
-    function toggleTheme() { console.log("Změna barvy..."); }
-    function geoLocate() { map.locate({setView: true, maxZoom: 15}); }
-
+    // 4. Funkce pro tlačítka (zde doplňte vlastní logiku nebo volání API)
+    function applyFilters() { console.log("Filtruji objekty..."); }
+    function startRoute() { alert("Začněte klikat na objekty pro vytvoření trasy."); }
+    function clearRoute() { alert("Trasa a markery byly vymazány."); }
+    function toggleHDMap() { alert("Přepínám mapové podklady..."); }
+    function toggleTheme() { 
+        // Jednoduchá ukázka přepnutí barvy
+        let current = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim();
+        if(current === '#4ade80') {
+            document.documentElement.style.setProperty('--accent-primary', '#f87171');
+        } else {
+            document.documentElement.style.setProperty('--accent-primary', '#4ade80');
+        }
+    }
+    function geoLocate() {
+        map.locate({setView: true, maxZoom: 15});
+    }
 </script>
 // --- GLOBÁLNÍ DATA A PROMĚNNÉ ---
  
