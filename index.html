@@ -1,304 +1,230 @@
-<html lang="cs"><head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JVS – Interaktivní plánovací a provozní systém</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<script type="module">
-    // Importy pro Firebase/Firestore
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, onSnapshot, collection, query, writeBatch, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-     
-    // Globální proměnné pro Firebase
-    window.initializeApp = initializeApp;
-    window.getAuth = getAuth;
-    window.signInAnonymously = signInAnonymously;
-    window.signInWithCustomToken = signInWithCustomToken;
-    window.onAuthStateChanged = onAuthStateChanged;
-    window.getFirestore = getFirestore;
-    window.doc = doc;
-    window.setDoc = setDoc;
-    window.onSnapshot = onSnapshot;
-    window.collection = collection;
-    window.query = query;
-    window.writeBatch = writeBatch;
-    window.setLogLevel = setLogLevel;
-</script>
-<style>
-/* --- 3. Barevné schéma: Tmavá se Zelenou (Default) / Červenou (Alternativa) --- */
-:root {
-    --bg: #0b1220;
-    --panel: #0f172a;
-    --accent-primary: #16a34a; /* Zelená akcent (Good/Go) */
-    --accent-secondary: #dc2626; /* Červená akcent (Danger/Stop) */
-    --text: #e5e7eb;
-    --muted: #94a3b8;
-    --completed: #34d399; /* Světle zelená pro dokončené úkoly */
-}
- 
-/* Tmavý mód s Červeným akcentem */
-body.theme-red {
-    --accent-primary: #dc2626;
-    --accent-secondary: #16a34a;
-    --completed: #f87171;
-}
- 
-/* Základní styly */
-*{box-sizing:border-box}
-body{margin:0;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);transition:background-color 0.3s}
-#map{height:100vh}
- 
-/* --- 2. Sada nástrojů na levé straně: Vylepšená Viditelnost --- */
-.top{
-    position:fixed;top:0;left:0;right:0;z-index:1000;
-    background:linear-gradient(135deg, var(--panel), #080f1e);
-    border-bottom:2px solid var(--accent-primary);
-    color:#ecfdf5;padding:10px 14px;
-    display:flex;justify-content:center;align-items:center;text-align:center;
-    transition:border-color 0.3s;
-}
-.top h1{margin:0;font-size:20px;letter-spacing:2px}
-.top span{display:block;font-size:12px;opacity:.8}
- 
-.tools-left{
-    position:fixed;
-    top:70px;
-    left:10px;z-index:1000;
-    background:var(--panel);border-radius:12px;
-    box-shadow:0 10px 20px rgba(0,0,0,.5);
-    padding:8px;width:56px; /* Zmenšená šířka */
-    display:flex;flex-direction:column;gap:8px; /* Menší mezery */
-}
-.tool-btn{
-    background:#020617;
-    border:1px solid var(--accent-primary);
-    color:var(--accent-primary);
-    border-radius:8px; /* Jemnější rohy */
-    height:40px; /* Menší výška */
-    cursor:pointer;font-size:16px; /* Menší font pro lepší centrování */
-    transition:background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-.tool-btn:hover{
-    background-color:var(--accent-primary);
-    color:var(--text);
-    box-shadow:0 0 10px rgba(var(--accent-primary), 0.5);
-}
- 
-/* --- 1. Kompaktní a zavírací filtr panel --- */
-.panel{
-    position:fixed;
-    top:70px;right:10px;z-index:1000;
-    width:340px;
-    max-height:calc(100vh - 90px);
-    background:var(--panel);
-    border-radius:14px;
-    box-shadow:0 20px 40px rgba(0,0,0,.5);
-    overflow:auto;padding:14px;
-    transform:translateX(110%);
-    transition:transform 0.3s ease-out;
-}
-.panel.open{
-    transform:translateX(0);
-}
-.panel-close-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: none;
-    border: none;
-    color: var(--muted);
-    font-size: 20px;
-    cursor: pointer;
-    line-height: 1;
-    transition: color 0.2s;
-}
-.panel-close-btn:hover {
-    color: var(--accent-secondary);
-}
- 
-.section{border-bottom:1px solid #1f2937;margin-bottom:14px;padding-bottom:14px}
-.section:last-child{border:none;margin:0}
-.section h2{margin:0 0 8px;font-size:13px;color:var(--accent-primary);transition:color 0.3s;}
-label{font-size:11px;font-weight:700;color:var(--muted)}
-input,select,button{width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid #1f2937;background:#020617;color:var(--text);font-size:12px;transition:border-color 0.2s}
-input:focus, select:focus { border-color: var(--accent-primary); outline: none; }
-button{cursor:pointer}
-.primary{background:var(--accent-primary);border:none;font-weight:800;color:var(--text)}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.card{background:#020617;border:1px solid #1f2937;border-radius:12px;padding:10px;text-align:center}
-.card .v{font-size:18px;font-weight:900;color:var(--accent-primary);transition:color 0.3s;}
-.card .l{font-size:10px;color:var(--muted)}
- 
-/* STYL PRO DOKONČENÉ/NEDOKONČENÉ MARKERY */
-.route-active{
-    outline:3px solid var(--accent-primary);
-    box-shadow:0 0 8px var(--accent-primary);
-    transition:outline 0.3s, box-shadow 0.3s;
-}
-.completed-area {
-    color: var(--completed) !important;
-    fillColor: var(--completed) !important;
-    outline: 3px solid var(--completed) !important;
-    box-shadow: 0 0 8px var(--completed) !important;
-}
- 
-/* Custom Modal for AI Output */
-.ai-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    z-index: 2000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-.ai-modal-content {
-    background: var(--panel);
-    border-radius: 16px;
-    padding: 20px;
-    width: 90%;
-    max-width: 700px;
-    max-height: 80vh;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
-    position: relative;
-    color: var(--text);
-    overflow-y: auto;
-}
-.ai-modal-body {
-    white-space: pre-wrap;
-    font-family: monospace;
-    font-size: 13px;
-    line-height: 1.5;
-    background: #020617;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #1f2937;
-    overflow-x: auto;
-}
-/* Spinner */
-.spinner {
-    border: 4px solid rgba(255, 255, 255, 0.1);
-    border-top: 4px solid var(--accent-primary);
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    animation: spin 1s linear infinite;
-    margin: 20px auto;
-}
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
- 
-/* --- Vylepšení pro Leaflet.Draw controls --- */
-.leaflet-draw-toolbar a, .leaflet-draw-actions a {
-    color: var(--text) !important;
-    background: var(--panel) !important;
-    border: 1px solid #1f2937 !important;
-    border-radius: 4px !important;
-    transition: background-color 0.2s, border-color 0.2s;
-}
-.leaflet-draw-toolbar a:hover, .leaflet-draw-actions a:hover {
-    background: var(--accent-primary) !important;
-    color: var(--text) !important;
-    border-color: var(--accent-primary) !important;
-}
-</style>
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JVS e-book</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+    <style>
+        :root {
+            --accent-primary: #4ade80;
+            --accent-secondary: #f87171;
+            --bg-dark: #1a1a1a;
+            --panel-bg: #2d2d2d;
+        }
+        body { margin: 0; padding: 0; font-family: sans-serif; background: var(--bg-dark); color: white; overflow: hidden; }
+        
+        /* Horní lišta */
+        .top { 
+            height: 70px; 
+            background: #111; 
+            display: flex; 
+            align-items: center; 
+            padding: 0 20px; 
+            border-bottom: 2px solid var(--accent-primary); 
+        }
+        .top h1 { margin: 0; font-size: 24px; color: var(--accent-primary); display: inline-block; vertical-align: middle; }
+        
+        /* Mapa */
+        #map { height: calc(100vh - 70px); width: 100%; position: relative; }
+        
+        /* Nástroje vlevo */
+        .tools-left { 
+            position: absolute; 
+            top: 90px; 
+            left: 10px; 
+            z-index: 1000; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+        }
+        .tool-btn { 
+            background: var(--panel-bg); 
+            border: 1px solid #444; 
+            color: white; 
+            padding: 12px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 18px;
+            transition: 0.3s; 
+        }
+        .tool-btn:hover { background: #444; border-color: var(--accent-primary); }
+
+        /* Panel vpravo */
+        .panel { 
+            position: absolute; 
+            top: 90px; 
+            right: 10px; 
+            width: 320px; 
+            background: var(--panel-bg); 
+            z-index: 1000; 
+            padding: 20px; 
+            border-radius: 12px; 
+            border: 1px solid #444; 
+            max-height: 80vh; 
+            overflow-y: auto; 
+            display: none; 
+        }
+        .section { margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 15px; }
+        .section h2 { font-size: 16px; margin-bottom: 10px; color: var(--accent-primary); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .card { background: #1a1a1a; padding: 10px; border-radius: 8px; text-align: center; }
+        .card .v { font-size: 18px; font-weight: bold; }
+        .card .l { font-size: 10px; color: #aaa; text-transform: uppercase; margin-top: 5px; }
+        
+        input, select { width: 100%; background: #1a1a1a; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; margin-bottom: 10px; box-sizing: border-box; }
+        .panel-close-btn { float: right; cursor: pointer; background: none; border: none; color: #888; font-size: 20px; }
+        
+        /* AI Modal */
+        .ai-modal-overlay { 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.85); 
+            z-index: 2000; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+        }
+        .ai-modal-content { 
+            background: var(--panel-bg); 
+            padding: 30px; 
+            border-radius: 15px; 
+            width: 90%; 
+            max-width: 600px; 
+            border: 1px solid var(--accent-primary); 
+            position: relative;
+        }
+        .text-xs { font-size: 12px; }
+        .mt-3 { margin-top: 12px; }
+        .text-center { text-align: center; }
+        .text-gray-500 { color: #6b7280; }
+    </style>
 </head>
 <body id="appBody">
+
 <div class="top">
-    <div>
-        <img src="https://drive.google.com/file/d/1RjoeJUvpCYrXB-E70Kmm0hgpNZM7wEnD/view?usp=drivesdk" alt="JVS Logo" style="height: 40px; margin-right: 10px;">
-        <h1>• JVS (e-book) •</h1>
-        <span style="font-size: 20px; font-weight: bold;">• Dominik Schmied •</span>
-    </div>
+    <div>
+        <img src="https://drive.google.com/uc?export=view&id=1RjoeJUvpCYrXB-E70Kmm0hgpNZM7wEnD" alt="JVS Logo" style="height: 40px; margin-right: 10px; vertical-align: middle;">
+        <h1>• JVS (e-book) •</h1>
+        <span style="font-size: 20px; font-weight: bold; margin-left: 10px;">• Dominik Schmied •</span>
+    </div>
 </div>
-<div id="map" class="leaflet-container leaflet-touch leaflet-retina leaflet-fade-anim leaflet-grab leaflet-touch-drag leaflet-touch-zoom" tabindex="0" style="position: relative;"><div class="leaflet-pane leaflet-map-pane" style="transform: translate3d(13px, 38px, 0px);"><div class="leaflet-pane leaflet-tile-pane"><div class="leaflet-layer " style="z-index: 1; opacity: 1;"><div class="leaflet-tile-container leaflet-zoom-animated" style="z-index: 20; transform: translate3d(0px, 0px, 0px) scale(1);"><img alt="" src="https://b.tile.openstreetmap.org/9/276/175.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(72px, 174px, 0px); opacity: 1;"><img alt="" src="https://a.tile.openstreetmap.org/9/276/174.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(72px, -82px, 0px); opacity: 1;"><img alt="" src="https://a.tile.openstreetmap.org/9/275/175.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-184px, 174px, 0px); opacity: 1;"><img alt="" src="https://c.tile.openstreetmap.org/9/277/175.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(328px, 174px, 0px); opacity: 1;"><img alt="" src="https://c.tile.openstreetmap.org/9/276/176.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(72px, 430px, 0px); opacity: 1;"><img alt="" src="https://c.tile.openstreetmap.org/9/275/174.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-184px, -82px, 0px); opacity: 1;"><img alt="" src="https://b.tile.openstreetmap.org/9/277/174.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(328px, -82px, 0px); opacity: 1;"><img alt="" src="https://b.tile.openstreetmap.org/9/275/176.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-184px, 430px, 0px); opacity: 1;"><img alt="" src="https://a.tile.openstreetmap.org/9/277/176.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(328px, 430px, 0px); opacity: 1;"></div></div></div><div class="leaflet-pane leaflet-overlay-pane"><canvas class="leaflet-zoom-animated" width="936" height="1592" style="transform: translate3d(-52px, -104px, 0px); width: 468px; height: 796px;"></canvas></div><div class="leaflet-pane leaflet-shadow-pane"></div><div class="leaflet-pane leaflet-marker-pane"></div><div class="leaflet-pane leaflet-tooltip-pane"></div><div class="leaflet-pane leaflet-popup-pane"></div><div class="leaflet-proxy leaflet-zoom-animated" style="transform: translate3d(70766px, 44919.5px, 0px) scale(256);"></div></div><div class="leaflet-control-container"><div class="leaflet-top leaflet-left"><div class="leaflet-control-zoom leaflet-bar leaflet-control"><a class="leaflet-control-zoom-in" href="#" title="Zoom in" role="button" aria-label="Zoom in" aria-disabled="false"><span aria-hidden="true">+</span></a><a class="leaflet-control-zoom-out" href="#" title="Zoom out" role="button" aria-label="Zoom out" aria-disabled="false"><span aria-hidden="true">−</span></a></div><div class="leaflet-draw leaflet-control" style="display: none;"><div class="leaflet-draw-section"><div class="leaflet-draw-toolbar leaflet-bar leaflet-draw-toolbar-top"><a class="leaflet-draw-draw-polyline" href="#" title="Draw a polyline"><span class="sr-only">Draw a polyline</span></a><a class="leaflet-draw-draw-polygon" href="#" title="Draw a polygon"><span class="sr-only">Draw a polygon</span></a><a class="leaflet-draw-draw-rectangle" href="#" title="Draw a rectangle"><span class="sr-only">Draw a rectangle</span></a><a class="leaflet-draw-draw-circle" href="#" title="Draw a circle"><span class="sr-only">Draw a circle</span></a><a class="leaflet-draw-draw-marker" href="#" title="Draw a marker"><span class="sr-only">Draw a marker</span></a></div><ul class="leaflet-draw-actions"></ul></div><div class="leaflet-draw-section"><div class="leaflet-draw-toolbar leaflet-bar"><a class="leaflet-draw-edit-edit leaflet-disabled" href="#" title="No layers to edit"><span class="sr-only">Edit layers</span></a><a class="leaflet-draw-edit-remove leaflet-disabled" href="#" title="No layers to delete"><span class="sr-only">Delete layers</span></a></div><ul class="leaflet-draw-actions"></ul></div></div></div><div class="leaflet-top leaflet-right"></div><div class="leaflet-bottom leaflet-left"></div><div class="leaflet-bottom leaflet-right"><div class="leaflet-control-attribution leaflet-control"><a href="https://leafletjs.com" title="A JavaScript library for interactive maps"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8" class="leaflet-attribution-flag"><path fill="#4C7BE1" d="M0 0h12v4H0z"></path><path fill="#FFD500" d="M0 4h12v3H0z"></path><path fill="#E0BC00" d="M0 7h12v1H0z"></path></svg> Leaflet</a> <span aria-hidden="true">|</span> © OpenStreetMap contributors</div></div></div></div>
- 
-<!-- Levá sada nástrojů -->
+
+<div id="map"></div>
+
 <div class="tools-left">
-    <button class="tool-btn" onclick="togglePanel()" title="Otevřít/Zavřít Panel Filtrů"><i class="fas fa-filter"></i></button>
-    <button class="tool-btn" onclick="startRoute()" title="Začít Novou Trasovací Sekvenci"><i class="fas fa-route"></i></button>
-    <button class="tool-btn" onclick="clearRoute()" title="Vyčistit Naplánovanou Trasu a Markery"><i class="fas fa-trash-alt"></i></button>
-    <button class="tool-btn" onclick="toggleHDMap()" title="Přepnout Mapové Podklady (HD/OSM)"><i class="fas fa-satellite-dish"></i></button>
-    <button class="tool-btn" onclick="toggleTheme()" title="Změnit Akcentní Barvu (Zelená/Červená)"><i class="fas fa-palette"></i></button>
-    <button class="tool-btn" onclick="geoLocate()" title="Najít Mojí Polohu"><i class="fas fa-location-crosshairs"></i></button>
-    <button class="tool-btn" id="draw-tool-btn" title="Nástroje pro Kreslení a Měření Vzdálenosti"><i class="fas fa-pencil-ruler"></i></button>
-    <button class="tool-btn" onclick="generateRoutePlan()" title="Generovat Plán Inspekce pomocí AI"><i class="fas fa-magic"></i></button> 
+    <button class="tool-btn" onclick="togglePanel()" title="Otevřít/Zavřít Panel Filtrů"><i class="fas fa-filter"></i></button>
+    <button class="tool-btn" onclick="startRoute()" title="Začít Novou Trasovací Sekvenci"><i class="fas fa-route"></i></button>
+    <button class="tool-btn" onclick="clearRoute()" title="Vyčistit Naplánovanou Trasu a Markery"><i class="fas fa-trash-alt"></i></button>
+    <button class="tool-btn" onclick="toggleHDMap()" title="Přepnout Mapové Podklady (HD/OSM)"><i class="fas fa-satellite-dish"></i></button>
+    <button class="tool-btn" onclick="toggleTheme()" title="Změnit Akcentní Barvu (Zelená/Červená)"><i class="fas fa-palette"></i></button>
+    <button class="tool-btn" onclick="geoLocate()" title="Najít Mojí Polohu"><i class="fas fa-location-crosshairs"></i></button>
+    <button class="tool-btn" id="draw-tool-btn" title="Nástroje pro Kreslení a Měření Vzdálenosti"><i class="fas fa-pencil-ruler"></i></button>
+    <button class="tool-btn" onclick="generateRoutePlan()" title="Generovat Plán Inspekce pomocí AI"><i class="fas fa-magic"></i></button> 
 </div>
- 
-<!-- Pravý ovládací panel (Filtr a Statistiky) -->
+
 <div class="panel" id="filterPanel">
-    <button class="panel-close-btn" onclick="togglePanel()"><i class="fas fa-times"></i></button>
-    <div class="section">
-        <h2>🔍 Filtr Objektů</h2>
-        <label for="fName">Název</label>
-        <input id="fName" oninput="applyFilters()" placeholder="Zadejte název vodojemu/ÚV">
-        <label for="fOkres">Okres</label>
-        <select id="fOkres" onchange="applyFilters()">
-            <option value="all">Všechny</option>
-        <option value="PI">PI</option><option value="ST">ST</option><option value="CB">CB</option><option value="PT">PT</option><option value="CK">CK</option><option value="TA">TA</option></select>
-    </div>
-     
-    <!-- NOVÁ SEKCE: SOUHRN TRAVNATÝCH PLOCH -->
-    <div class="section">
-        <h2>🌳 Údržba Travnatých Plocha</h2>
-        <div id="grass-loading-status" class="text-center text-sm text-yellow-400">Upozornění: Databáze není připojena.</div>
-        <div class="grid" style="grid-template-columns: 1fr;">
-            <div class="card"><div class="v" id="stGrassTotal" style="color: var(--accent-primary);">498 093 m²</div><div class="l">Celková plocha (m²)</div></div>
-            <div class="card"><div class="v" id="stGrassRemaining" style="color: var(--accent-secondary);">498 093 m²</div><div class="l">Zbývá dokončit (m²)</div></div>
-        </div>
-    </div>
-     
-    <div class="section">
-        <h2>📊 Statistiky a Trasa</h2>
-        <div class="grid">
-            <div class="card"><div class="v" id="stObj">41</div><div class="l">Objektů (zobraz.)</div></div>
-            <div class="card"><div class="v" id="stKm">0.0</div><div class="l">km v Trase</div></div>
-        </div>
-        <p class="text-xs mt-3 text-center text-gray-500">Klikněte na bod na mapě a zvolte "Přidat do Trasy" nebo "Start Trasy".</p>
-    </div>
-     
-    <!-- NOVÁ SEKCE: Informace o počasí -->
-    <div class="section">
-        <h2>☁️ Aktuální počasí v regionech</h2>
-        <ul class="text-xs">
-            <li>České Budějovice: -1°C, převážně zataženo</li>
-            <li>Český Krumlov: -2°C, částečně slunečno</li>
-            <li>Jindřichův Hradec: 13°C (max), déšť končí, zataženo</li>
-            <li>Prachatice: 7°C / 0°C, částečně zataženo</li>
-            <li>Tábor: -2°C, převážně zataženo</li>
-        </ul>
-    </div>
+    <button class="panel-close-btn" onclick="togglePanel()"><i class="fas fa-times"></i></button>
+    <div class="section">
+        <h2>🔍 Filtr Objektů</h2>
+        <label for="fName">Název</label>
+        <input id="fName" oninput="applyFilters()" placeholder="Zadejte název vodojemu/ÚV">
+        <label for="fOkres">Okres</label>
+        <select id="fOkres" onchange="applyFilters()">
+            <option value="all">Všechny</option>
+            <option value="PI">PI</option>
+            <option value="ST">ST</option>
+            <option value="CB">CB</option>
+            <option value="PT">PT</option>
+            <option value="CK">CK</option>
+            <option value="TA">TA</option>
+        </select>
+    </div>
+     
+    <div class="section">
+        <h2>🌳 Údržba Travnatých Plocha</h2>
+        <div id="grass-loading-status" class="text-center text-xs" style="color: #fbbf24; margin-bottom: 8px;">Upozornění: Databáze není připojena.</div>
+        <div class="grid" style="grid-template-columns: 1fr;">
+            <div class="card"><div class="v" id="stGrassTotal" style="color: var(--accent-primary);">498 093 m²</div><div class="l">Celková plocha (m²)</div></div>
+            <div class="card" style="margin-top:10px;"><div class="v" id="stGrassRemaining" style="color: var(--accent-secondary);">498 093 m²</div><div class="l">Zbývá dokončit (m²)</div></div>
+        </div>
+    </div>
+     
+    <div class="section">
+        <h2>📊 Statistiky a Trasa</h2>
+        <div class="grid">
+            <div class="card"><div class="v" id="stObj">41</div><div class="l">Objektů (zobraz.)</div></div>
+            <div class="card"><div class="v" id="stKm">0.0</div><div class="l">km v Trase</div></div>
+        </div>
+        <p class="text-xs mt-3 text-center text-gray-500">Klikněte na bod na mapě a zvolte "Přidat do Trasy" nebo "Start Trasy".</p>
+    </div>
+     
+    <div class="section">
+        <h2>☁️ Aktuální počasí v regionech</h2>
+        <ul class="text-xs" style="list-style: none; padding: 0; line-height: 1.6;">
+            <li>České Budějovice: -1°C, převážně zataženo</li>
+            <li>Český Krumlov: -2°C, částečně slunečno</li>
+            <li>Jindřichův Hradec: 13°C (max), déšť končí, zataženo</li>
+            <li>Prachatice: 7°C / 0°C, částečně zataženo</li>
+            <li>Tábor: -2°C, převážně zataženo</li>
+        </ul>
+    </div>
 </div>
- 
-<!-- Custom Modal pro zobrazení LLM výstupu -->
+
 <div id="aiModal" class="ai-modal-overlay" style="display:none;">
-    <div class="ai-modal-content">
-        <button class="panel-close-btn" onclick="closeModal()"><i class="fas fa-times"></i></button>
-        <h2 id="aiModalTitle" class="text-xl font-bold mb-4"></h2>
-        <div id="aiModalBody" class="ai-modal-body">
-            <!-- Content and spinner go here -->
-        </div>
-        <div id="aiModalSources" class="text-xs text-muted mt-4 border-t border-gray-700 pt-2" style="display: none;">
-            <!-- Sources go here if using search grounding -->
-        </div>
-    </div>
+    <div class="ai-modal-content">
+        <button class="panel-close-btn" onclick="closeModal()"><i class="fas fa-times"></i></button>
+        <h2 id="aiModalTitle" class="text-xl font-bold mb-4">AI Plánovač tras</h2>
+        <div id="aiModalBody" class="ai-modal-body">
+            Zpracovávám požadavek přes AI...
+        </div>
+        <div id="aiModalSources" class="text-xs mt-4" style="display: none; border-top: 1px solid #444; pt-2;">
+            </div>
+    </div>
 </div>
- 
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
 <script>
+    // Inicializace mapy
+    var map = L.map('map').setView([49.027, 14.470], 9);
+
+    // Přidání mapové vrstvy (OSM)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Funkce pro otevírání/zavírání panelu
+    function togglePanel() {
+        const panel = document.getElementById('filterPanel');
+        panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
+    }
+
+    // AI Modal funkce
+    function generateRoutePlan() {
+        document.getElementById('aiModal').style.display = 'flex';
+    }
+    
+    function closeModal() {
+        document.getElementById('aiModal').style.display = 'none';
+    }
+
+    // Prázdné funkce pro zachování funkčnosti tlačítek (zde doplníte logiku)
+    function applyFilters() { console.log("Filtrování..."); }
+    function startRoute() { console.log("Start trasy..."); }
+    function clearRoute() { console.log("Čištění..."); }
+    function toggleHDMap() { console.log("Změna mapy..."); }
+    function toggleTheme() { console.log("Změna barvy..."); }
+    function geoLocate() { map.locate({setView: true, maxZoom: 15}); }
+
+</script>
 // --- GLOBÁLNÍ DATA A PROMĚNNÉ ---
  
 let objects = [
