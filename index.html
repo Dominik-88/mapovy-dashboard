@@ -6,6 +6,7 @@
 <title>JVS – Interaktivní plánovací a provozní systém</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <script type="module">
     // Importy pro Firebase/Firestore
@@ -285,59 +286,53 @@ button{cursor:pointer}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 <script>
 // --- GLOBÁLNÍ DATA A PROMĚNNÉ ---
 
 let objects = [
-    {n:"VDJ Amerika II",o:"PI",lat:49.305131,lon:14.166126},
-    {n:"VDJ Drahonice",o:"ST",lat:49.202902,lon:14.063713},
-    {n:"VDJ Vodňany",o:"ST",lat:49.16455,lon:14.177836},
-    {n:"VDJ Hlavatce",o:"CB",lat:49.063584,lon:14.267751},
-    {n:"VDJ Šibeniční vrch I",o:"PT",lat:49.025083,lon:13.994111},
-    {n:"ÚV Husinecka přehrada",o:"PT",lat:49.034362,lon:13.99683},
-    {n:"VDJ Šibeniční vrch II",o:"PT",lat:49.02671,lon:13.994001},
-    {n:"VDJ Zálužany",o:"PI",lat:49.552857,lon:14.083381},
-    {n:"VDJ Ptáčník",o:"PT",lat:49.066147,lon:14.186844},
-    {n:"VDJ Zdoba",o:"CB",lat:49.212422,lon:14.338095},
-    {n:"VDJ Domoradice",o:"CK",lat:48.829651,lon:14.326564},
-    {n:"VDJ Horní Brána",o:"CK",lat:48.80797,lon:14.329352},
-    {n:"VDJ Netřebice",o:"CK",lat:48.783277,lon:14.456447},
-    {n:"VDJ Plešivec",o:"CK",lat:48.802231,lon:14.304933},
-    {n:"VDJ Doudleby",o:"CB",lat:48.888896,lon:14.480271},
-    {n:"VDJ Jankov",o:"CB",lat:48.968747,lon:14.301697},
-    {n:"VDJ Hosín II",o:"CB",lat:49.030641,lon:14.501012},
-    {n:"VDJ Chlum",o:"CB",lat:49.096493,lon:14.388679},
-    {n:"VDJ Chotýčany",o:"CB",lat:49.070748,lon:14.51946},
-    {n:"VDJ Rudolfov III",o:"CB",lat:48.986207,lon:14.547076},
-    {n:"VDJ Rimov - Vesce",o:"CB",lat:48.847847,lon:14.466957},
-    {n:"VDJ Hosin",o:"CB",lat:49.033641,lon:14.492878},
-    {n:"VDJ Včelná",o:"CB",lat:48.924663,lon:14.463506},
-    {n:"VDJ Húry",o:"CB",lat:49.006417,lon:14.549815},
-    {n:"VDJ Chlumec",o:"CB",lat:49.124766,lon:14.431321},
-    {n:"VDJ Olešník",o:"CB",lat:49.111103,lon:14.377766},
-    {n:"ČS Bukovec",o:"CB",lat:48.881608,lon:14.449233},
-    {n:"VDJ Heřman",o:"CB",lat:48.909479,lon:14.499876},
-    {n:"ČS Vidov u řeky",o:"CB",lat:48.924157,lon:14.489619},
-    {n:"Vrt Vidov",o:"CB",lat:48.924066,lon:14.489679},
-    {n:"ÚV Plav",o:"CB",lat:48.912611,lon:14.494018},
-    {n:"VDJ Čekanice",o:"TA",lat:49.422197,lon:14.689896},
-    {n:"VDJ Svatá Anna",o:"TA",lat:49.401133,lon:14.69864},
-    {n:"VDJ Bezděčín",o:"TA",lat:49.323096,lon:14.628405},
-    {n:"VDJ Milevsko",o:"TA",lat:49.452521,lon:14.344102},
-    {n:"VDJ Hodušín",o:"TA",lat:49.42967,lon:14.474214},
-    {n:"VDJ Všechov",o:"TA",lat:49.430159,lon:14.623205},
-    {n:"VDJ Zlukov",o:"TA",lat:49.196289,lon:14.736382},
-    {n:"ÚV Tábor",o:"TA",lat:49.422872,lon:14.666426},
-    {n:"ČS Sudoměřice",o:"TA",lat:49.28658,lon:14.547794},
-    {n:"Provozní Vodojem Tábor",o:"TA",lat:49.424264,lon:14.666384}
+    {n:"VDJ Amerika II",o:"PI",lat:49.305131,lon:14.166126,grass_m2:3303},
+    {n:"VDJ Drahonice",o:"ST",lat:49.202902,lon:14.063713,grass_m2:5953},
+    {n:"VDJ Vodňany",o:"CB",lat:49.164550,lon:14.177836,grass_m2:1594},
+    {n:"VDJ Hlavatce",o:"PT",lat:49.063584,lon:14.267751,grass_m2:7968},
+    {n:"VDJ Šibeniční vrch I",o:"PT",lat:49.025083,lon:13.994111,grass_m2:1835},
+    {n:"ÚV Husinecka přehrada",o:"PT",lat:49.034362,lon:13.996830,grass_m2:4908},
+    {n:"VDJ Šibeniční vrch II",o:"PI",lat:49.026710,lon:13.994001,grass_m2:3206},
+    {n:"VDJ Zálužany",o:"PT",lat:49.552857,lon:14.083381,grass_m2:2350},
+    {n:"VDJ Ptáčník",o:"CB",lat:49.066147,lon:14.186844,grass_m2:1070},
+    {n:"VDJ Zdoba",o:"CK",lat:49.212422,lon:14.338095,grass_m2:15523},
+    {n:"VDJ Domoradice",o:"CK",lat:48.829651,lon:14.326564,grass_m2:4148},
+    {n:"VDJ Horní Brána",o:"CK",lat:48.807970,lon:14.329352,grass_m2:1665},
+    {n:"VDJ Netřebice",o:"CK",lat:48.783277,lon:14.456447,grass_m2:877},
+    {n:"VDJ Plešivec",o:"CK",lat:48.802231,lon:14.304933,grass_m2:975},
+    {n:"VDJ Doudleby",o:"CB",lat:48.888896,lon:14.480271,grass_m2:413},
+    {n:"VDJ Jankov",o:"CB",lat:48.968747,lon:14.301697,grass_m2:784},
+    {n:"VDJ Hosín II",o:"CB",lat:49.030641,lon:14.501012,grass_m2:4173},
+    {n:"VDJ Chlum",o:"CB",lat:49.096493,lon:14.388679,grass_m2:535},
+    {n:"VDJ Chotýčany",o:"CB",lat:49.070748,lon:14.519460,grass_m2:4775},
+    {n:"VDJ Rudolfov III",o:"CB",lat:48.986207,lon:14.547076,grass_m2:1868},
+    {n:"VDJ Rimov - Vesce",o:"CB",lat:48.847847,lon:14.466957,grass_m2:662},
+    {n:"VDJ Hosin",o:"CB",lat:49.033641,lon:14.492878,grass_m2:809},
+    {n:"VDJ Včelná",o:"CB",lat:48.924663,lon:14.463506,grass_m2:8660},
+    {n:"VDJ Húry",o:"CB",lat:49.006417,lon:14.549815,grass_m2:395},
+    {n:"VDJ Chlumec",o:"CB",lat:49.124766,lon:14.431321,grass_m2:811},
+    {n:"VDJ Olešník",o:"CB",lat:49.111103,lon:14.377766,grass_m2:380},
+    {n:"ČS Bukovec",o:"CB",lat:48.881608,lon:14.449233,grass_m2:4943},
+    {n:"VDJ Heřman",o:"CB",lat:48.909479,lon:14.499876,grass_m2:982},
+    {n:"ČS Vidov u řeky",o:"CB",lat:48.924157,lon:14.489619,grass_m2:2501},
+    {n:"Vrt Vidov",o:"CB",lat:48.924066,lon:14.489679,grass_m2:470},
+    {n:"ÚV Plav",o:"CB",lat:48.912611,lon:14.494018,grass_m2:374777},
+    {n:"VDJ Čekanice",o:"TA",lat:49.422197,lon:14.689896,grass_m2:6344},
+    {n:"VDJ Svatá Anna",o:"TA",lat:49.401133,lon:14.698640,grass_m2:4192},
+    {n:"VDJ Bezděčín",o:"TA",lat:49.323096,lon:14.628405,grass_m2:1996},
+    {n:"VDJ Milevsko",o:"TA",lat:49.452521,lon:14.344102,grass_m2:823},
+    {n:"VDJ Hodušín",o:"TA",lat:49.429670,lon:14.474214,grass_m2:1708},
+    {n:"VDJ Všechov",o:"TA",lat:49.430159,lon:14.623205,grass_m2:1574},
+    {n:"VDJ Zlukov",o:"TA",lat:49.196289,lon:14.736382,grass_m2:1520},
+    {n:"ÚV Tábor",o:"TA",lat:49.422872,lon:14.666426,grass_m2:12262},
+    {n:"ČS Sudoměřice",o:"TA",lat:49.286580,lon:14.547794,grass_m2:2508},
+    {n:"Provozní Vodojem Tábor",o:"TA",lat:49.424264,lon:14.666384,grass_m2:1853}
 ];
-
-// Dynamické přidání travnatých ploch pro simulaci
-objects.forEach(obj => {
-    let base = obj.n.includes('VDJ') || obj.n.includes('ÚV') ? 2500 : 800;
-    obj.grass_m2 = base + Math.floor(Math.random() * 2000); // 800 až 4500 m²
-});
-
 
 let filtered = [...objects];
 let route = [];
@@ -345,6 +340,7 @@ let routeLine;
 let markers = [];
 let drawnItems;
 let currentLocationMarker = null; // Pro sledování markeru polohy
+let routingControl;
 
 // Firestore proměnné
 let db;
@@ -708,7 +704,7 @@ function render() {
     });
     
     document.getElementById('stObj').textContent = filtered.length;
-    updateRouteLine();
+    updateRoute();
 }
 
 window.toggleRoutePoint = function(name) {
@@ -735,35 +731,43 @@ window.startRouteFromPoint = function(name) {
     render();
 }
 
-function updateRouteLine() {
-    if (routeLine) {
-        map.removeLayer(routeLine);
+function updateRoute() {
+    if (routingControl) {
+        map.removeControl(routingControl);
+        routingControl = null;
     }
 
-    let km = 0;
-    if (route.length > 1) {
-        const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary');
-        const points = route.map(p => [p.lat, p.lon]);
-        
-        routeLine = L.polyline(points, {
-            color: accentColor,
-            weight: 5,
-            opacity: 0.8,
-            dashArray: '10, 5'
-        }).addTo(map);
-
-        for (let i = 1; i < route.length; i++) {
-            km += map.distance([route[i-1].lat, route[i-1].lon], [route[i].lat, route[i].lon]);
-        }
+    if (route.length < 2) {
+        document.getElementById('stKm').textContent = '0.0';
+        return;
     }
-    document.getElementById('stKm').textContent = (km / 1000).toFixed(1);
+
+    const accentPrimary = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary');
+
+    routingControl = L.Routing.control({
+        waypoints: route.map(p => L.latLng(p.lat, p.lon)),
+        routeWhileDragging: false,
+        show: false,
+        createMarker: () => null,
+        lineOptions: {
+            styles: [{color: accentPrimary, weight: 5, opacity: 0.8, dashArray: '10, 5'}]
+        },
+        router: L.Routing.osrmv1({
+            serviceUrl: 'https://router.project-osrm.org/route/v1'
+        })
+    }).addTo(map);
+
+    routingControl.on('routesfound', function(e) {
+        const km = e.routes[0].summary.totalDistance / 1000;
+        document.getElementById('stKm').textContent = km.toFixed(1);
+    });
 }
 
 function clearRoute() {
     route = [];
-    if (routeLine) {
-        map.removeLayer(routeLine);
-        routeLine = null;
+    if (routingControl) {
+        map.removeControl(routingControl);
+        routingControl = null;
     }
     removeCurrentLocationMarker(); // Odstranění markeru polohy
     render();
@@ -972,8 +976,8 @@ function initializeDrawControls() {
             layer.bindPopup(`<strong>Vzdálenost:</strong> ${(distance / 1000).toFixed(2)} km`).openPopup();
         }
         if (type === 'polygon' || type === 'rectangle') {
-             const area = L.GeometryUtil.geodesicArea(layer);
-            layer.bindPopup(`<strong>Plocha:</strong> ${(area / 1000000).toFixed(2)} km²`).openPopup();
+             const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]);
+            layer.bindPopup(`<strong>Plocha:</strong> ${area.toFixed(2)} m²`).openPopup();
         }
 
         drawnItems.addLayer(layer);
@@ -990,6 +994,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeFirebase(); // Inicializace DB
     // render() je voláno po inicializaci databáze v listenForCompletionUpdates
     initializeDrawControls();
+    const bounds = L.latLngBounds(objects.map(o => [o.lat, o.lon]));
+    map.fitBounds(bounds);
+    render();
 });
 
 window.closeModal = closeModal;
