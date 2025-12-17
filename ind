@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vodárenské areály – Management systém</title>
+
+<!-- LEAFLET -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet-measure/dist/leaflet-measure.css">
+
+<style>
+:root{
+--primary:#2563eb;--success:#16a34a;--warning:#f59e0b;--danger:#dc2626;
+--gray-100:#f1f5f9;--gray-200:#e2e8f0;--gray-600:#475569;--gray-900:#0f172a
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui;background:var(--gray-100);color:var(--gray-900);overflow:hidden}
+
+#map{position:fixed;top:60px;left:0;right:0;bottom:0}
+
+.top{
+position:fixed;top:0;left:0;right:0;height:60px;
+background:linear-gradient(135deg,#1e3a8a,#2563eb);
+color:#fff;display:flex;align-items:center;justify-content:space-between;
+padding:0 16px;z-index:1000
+}
+
+.panel{
+position:fixed;top:76px;right:16px;width:380px;
+max-height:calc(100vh - 92px);background:#fff;border-radius:12px;
+box-shadow:0 10px 30px rgba(0,0,0,.2);overflow-y:auto;
+padding:16px;z-index:999;transition:.35s
+}
+.panel.collapsed{transform:translateX(420px)}
+
+.panel-toggle{
+position:absolute;top:10px;left:-36px;width:36px;height:36px;
+background:var(--primary);color:#fff;border:none;border-radius:8px 0 0 8px;
+font-weight:700;cursor:pointer
+}
+
+.section{border-bottom:1px solid var(--gray-200);margin-bottom:12px;padding-bottom:12px}
+.section-header{display:flex;justify-content:space-between;cursor:pointer}
+
+#filterContent{max-height:1000px;transition:.3s}
+.filters-collapsed #filterContent{max-height:0;opacity:0;pointer-events:none}
+
+label{font-size:11px;font-weight:700;color:var(--gray-600);margin-top:10px;display:block}
+input,select{width:100%;padding:8px;border-radius:8px;border:1px solid var(--gray-200)}
+
+.legend{
+position:fixed;bottom:20px;left:16px;background:#fff;padding:12px;
+border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.2)
+}
+.legend-dot{width:12px;height:12px;border-radius:50%;display:inline-block;margin-right:6px}
+</style>
+</head>
+
+<body>
+
+<div class="top">
+<div>
+<strong>🚰 Vodárenské areály</strong><br>
+<small>Management systém</small>
+</div>
+<button onclick="exportCSV()">📤 Export</button>
+</div>
+
+<div id="map"></div>
+
+<div class="panel" id="sidePanel">
+<button class="panel-toggle" onclick="togglePanel()">⮜</button>
+
+<div class="section" id="filterSection">
+<h3 class="section-header" onclick="toggleFilters()">🔍 Filtry <span>▲</span></h3>
+<div id="filterContent">
+<label>Název</label><input id="fName" oninput="applyFilters()">
+<label>Okres</label>
+<select id="fOkres" onchange="applyFilters()">
+<option value="all">Vše</option>
+</select>
+<label>Stav</label>
+<select id="fStav" onchange="applyFilters()">
+<option value="all">Vše</option>
+<option value="dobrý">Dobrý</option>
+<option value="rizikový">Rizikový</option>
+<option value="havarijní">Havarijní</option>
+</select>
+</div>
+</div>
+</div>
+
+<div class="legend">
+<div><span class="legend-dot" style="background:#16a34a"></span>Dobrý</div>
+<div><span class="legend-dot" style="background:#f59e0b"></span>Rizikový</div>
+<div><span class="legend-dot" style="background:#dc2626"></span>Havarijní</div>
+</div>
+
+<!-- SCRIPTS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-measure/dist/leaflet-measure.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+
+<script>
+const data = [
+{o:"PI",n:"VDJ Amerika II",lat:49.305131,lon:14.166126,s:"dobrý"},
+{o:"ST",n:"VDJ Drahonice",lat:49.202902,lon:14.063713,s:"rizikový"},
+{o:"CB",n:"VDJ Hlavatce",lat:49.063584,lon:14.267751,s:"dobrý"},
+{o:"CB",n:"ÚV Plav",lat:48.912611,lon:14.494018,s:"dobrý"}
+];
+
+let map,markers=[],filtered=[...data],route=[],routing;
+
+document.addEventListener('DOMContentLoaded',init);
+
+function init(){
+map=L.map('map').setView([49.1,14.4],9);
+
+const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+const ortho=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+osm.addTo(map);
+
+L.control.layers({"Mapa":osm,"Letecká":ortho}).addTo(map);
+L.control.measure({primaryLengthUnit:'meters'}).addTo(map);
+
+[...new Set(data.map(d=>d.o))].forEach(o=>{
+fOkres.innerHTML+=`<option value="${o}">${o}</option>`;
+});
+
+render();
+
+if(localStorage.panelCollapsed==='1')togglePanel();
+if(localStorage.filtersCollapsed==='1')toggleFilters();
+}
+
+function render(){
+markers.forEach(m=>map.removeLayer(m));
+markers=[];
+filtered.forEach(d=>{
+const c=d.s==='havarijní'?'#dc2626':d.s==='rizikový'?'#f59e0b':'#16a34a';
+const m=L.circleMarker([d.lat,d.lon],{radius:7,color:c,fillColor:c,fillOpacity:.8}).addTo(map);
+m.bindPopup(`<strong>${d.n}</strong><br>${d.o}`);
+m.on('click',()=>addRoutePoint(d));
+markers.push(m);
+});
+}
+
+function addRoutePoint(d){
+route.push(L.latLng(d.lat,d.lon));
+if(route.length>=2){
+if(routing)map.removeControl(routing);
+routing=L.Routing.control({waypoints:route,addWaypoints:false}).addTo(map);
+}
+}
+
+function applyFilters(){
+const n=fName.value.toLowerCase(),o=fOkres.value,s=fStav.value;
+filtered=data.filter(d=>(!n||d.n.toLowerCase().includes(n))&&(o==='all'||d.o===o)&&(s==='all'||d.s===s));
+render();
+}
+
+function togglePanel(){
+sidePanel.classList.toggle('collapsed');
+localStorage.panelCollapsed=sidePanel.classList.contains('collapsed')?'1':'0';
+}
+function toggleFilters(){
+filterSection.classList.toggle('filters-collapsed');
+localStorage.filtersCollapsed=filterSection.classList.contains('filters-collapsed')?'1':'0';
+}
+
+function exportCSV(){
+const r=['Nazev;Okres;Lat;Lon'];
+filtered.forEach(d=>r.push(`${d.n};${d.o};${d.lat};${d.lon}`));
+const a=document.createElement('a');
+a.href=URL.createObjectURL(new Blob([r.join('\n')]));
+a.download='arealy.csv';a.click();
+}
+</script>
+
+</body>
+</html>
